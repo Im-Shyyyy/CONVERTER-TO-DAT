@@ -337,6 +337,10 @@
 
         document.getElementById('save-dat').addEventListener('click', async () => {
           if (rows.length === 0) return alert('No data to save');
+
+          const el = document.getElementById('user-list');
+          rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
           const res = await fetch('/save_dat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
