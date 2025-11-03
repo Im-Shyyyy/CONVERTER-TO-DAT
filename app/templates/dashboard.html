@@ -110,18 +110,20 @@
       .submenu {
         display: flex;
         flex-direction: column;
-        gap: 0.6rem;
-        margin-top: 0.5rem;
-        padding-left: 1.5rem;
+        gap: 1.2rem;
+        margin-top: 1.2rem;
+        padding-left: 0.8rem;
         width: 100%;
         animation: fadeIn 0.25s ease;
      }
 
         .sub-btn {
         background: linear-gradient(to right, #ff5050, #ff8080);
-        font-size: 0.9rem;
-        padding: 0.6rem;
-        border-radius: 15px;
+        font-size: 0.95rem;
+        padding: 0.9rem 1rem;
+        border-radius: 16px;
+        margin: 0 0.2rem;
+        transition: all 0.25s ease;
         }
 
         .sub-btn:hover {
@@ -150,7 +152,7 @@
             <i class="fa-solid fa-caret-down ms-2"></i>
             </button>
             <div id="vatSubmenu" class="submenu mt-2" style="display: none;">
-            <button class="choice-btn sub-btn" id="salesBtn">
+            <button class="choice-btn sub-btn" id="salesBtn" style="margin-bottom: 0.3rem;">
                 <i class="fa-solid fa-chart-line me-2"></i> Sales
             </button>
             <button class="choice-btn sub-btn" id="purchasesBtn">
