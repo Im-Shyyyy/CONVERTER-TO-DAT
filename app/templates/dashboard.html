@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard - CSV → DAT Converter</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: radial-gradient(circle at top, #1a0b0b 0%, #000 100%);
+        font-family: "Inter", system-ui, sans-serif;
+        color: #fff;
+      }
+
+      .dashboard-container {
+        background: linear-gradient(to top, #000 30%, #1a0b0b 70%, #220000 100%);
+        border-radius: 32px;
+        box-shadow: 0 0 35px rgba(200, 0, 0, 0.25);
+        width: 100%;
+        max-width: 420px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .dashboard-header h1 {
+        font-size: 1.9rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      .dashboard-header small {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+      }
+
+      .choices {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .choice-btn {
+        background: linear-gradient(to right, #b80000, #ff3030);
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        padding: 0.8rem 1rem;
+        font-weight: 600;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        transition: all 0.25s ease;
+      }
+
+      .choice-btn:hover {
+        background: linear-gradient(to right, #c90000, #ff4d4d);
+        transform: translateY(-2px);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.25);
+      }
+
+      .logout {
+        margin-top: 2rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+      }
+
+      .logout a {
+        color: #ff4d4d;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .logout a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="dashboard-container">
+      <div class="dashboard-header">
+        <h1>CSV → DAT</h1>
+        <small>Welcome, Lazy bums   !</small>
+      </div>
+
+      <div class="choices">
+        <button class="choice-btn" onclick="location.href='/vat-relief'">
+          <i class="fa-solid fa-file-invoice-dollar me-2"></i> VAT Relief
+        </button>
+
+        <button class="choice-btn" onclick="location.href='/sawt'">
+          <i class="fa-solid fa-file-contract me-2"></i> SAWT
+        </button>
+
+        <button class="choice-btn" onclick="location.href='/qap'">
+          <i class="fa-solid fa-file-lines me-2"></i> QAP
+        </button>
+      </div>
+
+      <div class="logout mt-4">
+        <a href="/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Logout</a>
+      </div>
+    </div>
+  </body>
+</html>

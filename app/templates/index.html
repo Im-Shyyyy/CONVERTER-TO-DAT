@@ -46,19 +46,34 @@
         margin-bottom: 1rem;
       }
 
+      .menu-btn,
       .logout-btn {
-        align-self: flex-start;
-        background: transparent;
-        color: var(--accent-light);
-        border: 1px solid var(--accent-light);
-        border-radius: 8px;
-        padding: 4px 12px;
-        font-size: 0.85rem;
-        transition: all 0.2s ease-in-out;
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: 0.2s;
       }
-      .logout-btn:hover {
+
+      /* Menu button style */
+      .menu-btn {
         background: var(--accent-light);
         color: #0d0d0d;
+      }
+      .menu-btn:hover {
+        filter: brightness(1.15);
+      }
+
+      /* Logout button style */
+      .logout-btn {
+        background: var(--danger);
+        color: white;
+      }
+      .logout-btn:hover {
+        opacity: 0.85;
       }
 
       .main-content {
@@ -160,8 +175,7 @@
 
   <body>
     <div class="sidebar">
-      <h4>RELIEF CONVERTER</h4>
-      <a href="/logout" class="logout-btn mb-4">Logout</a>
+      <h4>Summary List - Puchases</h4>
 
       <label class="small-label">Client TIN</label>
       <input id="client_tin" class="form-control mb-2" placeholder="XXX-XXX-XXX" maxlength="11" inputmode="numeric" pattern="[0-9\-]*" />
@@ -186,6 +200,11 @@
         <button id="upload-btn" class="btn btn-outline-light">Upload CSV</button>
         <input id="csv-input" type="file" accept=".csv" style="display:none" />
         <button id="clear-btn" class="btn btn-danger">Clear List</button>
+      </div>
+
+      <div class="sidebar-buttons d-flex gap-2 mt-3">
+        <a href="/dashboard" class="menu-btn">Menu</a>
+        <a href="/logout" class="logout-btn">Logout</a>
       </div>
     </div>
 

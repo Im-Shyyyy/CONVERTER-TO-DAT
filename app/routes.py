@@ -48,23 +48,53 @@ def login_required(f):
     return decorated
 
 
-@main.route('/login', methods=['GET', 'POST'])
+@main.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
+        # ⚠️ Replace this dummy check with your actual auth logic
         if username == VALID_USERNAME and password == VALID_PASSWORD:
             session['logged_in'] = True
-            return redirect(url_for('main.index'))
+            session['username'] = username
+            return redirect(url_for('main.dashboard'))
         else:
             return render_template('login.html', error="Invalid credentials")
 
     return render_template('login.html')
 
+@main.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+    username = session.get('username', 'User')
+    return render_template('dashboard.html', username=username)
+
+@main.route('/vat-relief')
+def vat_relief():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+    # This renders your existing index.html (VAT Relief converter)
+    return render_template('index.html')
+
+@main.route('/sawt')
+def sawt():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+    # Placeholder: create sawt.html later
+    return render_template('sawt.html')
+
+@main.route('/qap')
+def qap():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+    # Placeholder: create qap.html later
+    return render_template('qap.html')
+
 @main.route('/logout')
 def logout():
-    session.clear()  # clear the user's session
+    session.pop('username', None)
     return redirect(url_for('main.login'))
 
 latest_sums = {
