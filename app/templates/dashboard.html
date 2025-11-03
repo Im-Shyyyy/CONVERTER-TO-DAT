@@ -51,9 +51,15 @@
         flex-direction: column;
         gap: 1rem;
         margin-top: 2rem;
+        width: 100%;
+      }
+
+      .dropdown-container {
+        width: 100%;
       }
 
       .choice-btn {
+        width: 100%;
         background: linear-gradient(to right, #b80000, #ff3030);
         color: #fff;
         border: none;
@@ -63,7 +69,10 @@
         font-size: 1rem;
         letter-spacing: 0.5px;
         transition: all 0.25s ease;
-      }
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
       .choice-btn:hover {
         background: linear-gradient(to right, #c90000, #ff4d4d);
@@ -86,6 +95,32 @@
       .logout a:hover {
         text-decoration: underline;
       }
+
+      .submenu {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        margin-top: 0.5rem;
+        padding-left: 1.5rem;
+        width: 100%;
+        animation: fadeIn 0.25s ease;
+     }
+
+        .sub-btn {
+        background: linear-gradient(to right, #ff5050, #ff8080);
+        font-size: 0.9rem;
+        padding: 0.6rem;
+        border-radius: 15px;
+        }
+
+        .sub-btn:hover {
+        background: linear-gradient(to right, #ff6666, #ff9999);
+        }
+
+        @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+        }
     </style>
   </head>
 
@@ -97,9 +132,21 @@
       </div>
 
       <div class="choices">
-        <button class="choice-btn" onclick="location.href='/vat-relief'">
-          <i class="fa-solid fa-file-invoice-dollar me-2"></i> VAT Relief
-        </button>
+        <!-- VAT Relief dropdown button -->
+        <div class="dropdown-container">
+            <button class="choice-btn" id="vatReliefBtn">
+            <i class="fa-solid fa-file-invoice-dollar me-2"></i> VAT Relief
+            <i class="fa-solid fa-caret-down ms-2"></i>
+            </button>
+            <div id="vatSubmenu" class="submenu mt-2" style="display: none;">
+            <button class="choice-btn sub-btn" id="salesBtn">
+                <i class="fa-solid fa-chart-line me-2"></i> Sales
+            </button>
+            <button class="choice-btn sub-btn" id="purchasesBtn">
+                <i class="fa-solid fa-cart-shopping me-2"></i> Purchases
+            </button>
+            </div>
+        </div>
 
         <button class="choice-btn" onclick="location.href='/sawt'">
           <i class="fa-solid fa-file-contract me-2"></i> SAWT
@@ -114,5 +161,18 @@
         <a href="/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Logout</a>
       </div>
     </div>
+
+    <script>
+        // Toggle submenu visibility
+        document.getElementById("vatReliefBtn").addEventListener("click", () => {
+            const submenu = document.getElementById("vatSubmenu");
+            submenu.style.display = submenu.style.display === "none" ? "block" : "none";
+        });
+
+        // Redirect only Purchases to index.html
+        document.getElementById("purchasesBtn").addEventListener("click", () => {
+            location.href = "/vat-relief"; // This goes to index.html
+        });
+    </script>
   </body>
 </html>
