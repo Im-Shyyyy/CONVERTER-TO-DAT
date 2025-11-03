@@ -383,6 +383,11 @@
 
         document.getElementById('convert-xlsx').addEventListener('click', async () => {
           if (rows.length === 0) return alert('No data to convert');
+
+          // 🩹 Sync edited text back into the array
+          const el = document.getElementById('user-list');
+          rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
           const res = await fetch('/convert_xlsx', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

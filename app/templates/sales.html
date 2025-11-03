@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CSV → DAT Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <style>
+      :root {
+        --bg-top: #0d0d0d;
+        --bg-bottom: #8b0000;
+        --card-bg: rgba(22, 27, 34, 0.6);
+        --text-light: #e6edf3;
+        --accent: #ff4c4c;
+        --accent-light: #ff6b6b;
+        --border-glow: rgba(255, 76, 76, 0.4);
+      }
+
+      body {
+        background: linear-gradient(to top, var(--bg-bottom), var(--bg-top));
+        color: var(--text-light);
+        font-family: "JetBrains Mono", monospace;
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        margin: 0;
+        overflow-x: hidden;
+      }
+
+      .sidebar {
+        backdrop-filter: blur(8px);
+        background: rgba(15, 15, 15, 0.25);
+        border-right: 1px solid var(--border-glow);
+        box-shadow: 4px 0 15px rgba(255, 76, 76, 0.1);
+        padding: 2rem 1.5rem;
+        width: 350px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar h4 {
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .menu-btn,
+      .logout-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: 0.2s;
+      }
+
+      /* Menu button style */
+      .menu-btn {
+        background: var(--accent-light);
+        color: #0d0d0d;
+      }
+      .menu-btn:hover {
+        filter: brightness(1.15);
+      }
+
+      /* Logout button style */
+      .logout-btn {
+        background: var(--danger);
+        color: white;
+      }
+      .logout-btn:hover {
+        opacity: 0.85;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+      }
+
+      label.small-label {
+        font-size: 0.75rem;
+        color: var(--accent-light);
+        text-transform: uppercase;
+        font-weight: 500;
+        margin-top: 0.5rem;
+      }
+
+      .form-control,
+      .btn {
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .btn-primary {
+        background: linear-gradient(90deg, var(--accent), var(--accent-light));
+        border: none;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.15);
+        box-shadow: 0 0 10px var(--accent-light);
+      }
+
+      #user-list {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        white-space: pre-wrap;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        border-radius: 8px;
+        height: 450px;
+        padding: 10px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .sum-box {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 1rem;
+      }
+
+      .summary-label {
+        color: #9da9bb; /* subtle bluish-gray tone */
+        font-weight: 500;
+        font-size: 0.85rem;
+        letter-spacing: 0.3px;
+        text-shadow: 0 0 1px rgba(0,0,0,0.5);
+      }
+
+      .summary-value {
+        color: #ffffff; /* keep numeric contrast */
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      .sum-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        transition: background-color 0.2s ease;
+      }
+
+      .sum-item:hover {
+        background-color: rgba(255,255,255,0.05);
+      }
+
+      .sum-item:last-child {
+        border-bottom: none;
+      }
+
+      .text-warning {
+        color: var(--accent-light) !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h4>Summary List - Sales</h4>
+
+      <label class="small-label">Client TIN</label>
+      <input id="client_tin" class="form-control mb-2" placeholder="XXX-XXX-XXX" maxlength="11" inputmode="numeric" pattern="[0-9\-]*" />
+
+      <label class="small-label">Name & Address</label>
+      <input id="corporate_name" class="form-control mb-1" placeholder="Corporate name" />
+      <input id="last_name" class="form-control mb-1" placeholder="Last name" />
+      <input id="first_name" class="form-control mb-1" placeholder="First name" />
+      <input id="middle_name" class="form-control mb-1" placeholder="Middle name" />
+      <input id="trade_name" class="form-control mb-1" placeholder="Trade name" />
+      <input id="address1" class="form-control mb-1" placeholder="Street, Barangay" />
+      <input id="address2" class="form-control mb-1" placeholder="Municipality/City, Zip" />
+
+      <label class="small-label mt-2">RDO</label>
+      <input id="rdo" class="form-control mb-2" placeholder="e.g. 001" />
+
+      <label class="small-label">Period Covered (MM/DD/YYYY)</label>
+      <input id="period" class="form-control mb-3" placeholder="mm/dd/yyyy (just type numbers)" />
+
+      <div class="d-grid gap-2 mt-3">
+        <button id="submit-btn" class="btn btn-primary">Submit (append)</button>
+        <button id="upload-btn" class="btn btn-outline-light">Upload CSV</button>
+        <input id="csv-input" type="file" accept=".csv" style="display:none" />
+        <button id="clear-btn" class="btn btn-danger">Clear List</button>
+      </div>
+
+      <div class="sidebar-buttons d-flex gap-2 mt-3">
+        <a href="/dashboard" class="menu-btn">Menu</a>
+        <a href="/logout" class="logout-btn">Logout</a>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="card p-4 flex-grow-1">
+        <h6 class="text-info mb-2">Data Preview</h6>
+        <div id="user-list"></div>
+
+        <div class="sum-box compact mt-3">
+          <h6 class="text-info mb-2">Sums</h6>
+          <div id="sums" class="row row-cols-2 g-1">
+            <div class="sum-item"><span class="summary-label">Exempt</span><span id="exempt" class="summary-value">0.00</span></div>
+            <div class="sum-item"><span class="summary-label">Zero Rated</span><span id="zero" class="summary-value">0.00</span></div>
+            <div class="sum-item"><span class="summary-label">Taxable</span><span id="taxable" class="summary-value">0.00</span></div>
+            <div class="sum-item"><span class="summary-label">Output VAT</span><span id="outputvat" class="summary-value">0.00</span></div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button id="save-dat" class="btn btn-success w-30">Save .DAT</button>
+          <button id="convert-xlsx" class="btn btn-warning w-50">Convert → Excel (.xlsx)</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const tinInput = document.getElementById('client_tin');
+
+            // Fetch client details automatically when TIN is entered
+            async function fetchAndFillClient(tin) {
+                if (!tin) return;
+                const tinNorm = tin.replace(/-/g, '');
+                try {
+                    const res = await fetch(`/get_client/${tinNorm}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.found) {
+                        document.getElementById('corporate_name').value = data.corporate_name || '';
+                        document.getElementById('last_name').value = data.last_name || '';
+                        document.getElementById('first_name').value = data.first_name || '';
+                        document.getElementById('middle_name').value = data.middle_name || '';
+                        document.getElementById('trade_name').value = data.trade_name || '';
+                        document.getElementById('address1').value = data.address1 || '';
+                        document.getElementById('address2').value = data.address2 || '';
+                        document.getElementById('rdo').value = data.rdo || '';
+                    }
+                } catch (e) {
+                    console.log('Client fetch error', e);
+                }
+            }
+
+            // Auto-format TIN input
+            tinInput.addEventListener('blur', () => {
+                const val = tinInput.value.trim();
+                if (val) fetchAndFillClient(val);
+            });
+
+            tinInput.addEventListener('input', () => {
+                let value = tinInput.value.replace(/\D/g, '');
+                if (value.length > 9) value = value.slice(0, 9);
+                let formatted = value;
+                if (value.length > 3 && value.length <= 6)
+                    formatted = value.slice(0, 3) + '-' + value.slice(3);
+                else if (value.length > 6)
+                    formatted = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6);
+                tinInput.value = formatted;
+            });
+
+            // Auto-format date input
+            const periodInput = document.getElementById('period');
+            periodInput.addEventListener('input', () => {
+                let value = periodInput.value.replace(/\D/g, '');
+                if (value.length > 8) value = value.slice(0, 8);
+                let formatted = value;
+                if (value.length > 4)
+                    formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                else if (value.length > 2)
+                    formatted = value.slice(0, 2) + '/' + value.slice(2);
+                periodInput.value = formatted;
+            });
+
+            // Initialize data
+            let rows = [];
+            let sums = { exempt: 0, zero: 0, taxable: 0, outputvat: 0 };
+
+            function renderList() {
+                const el = document.getElementById('user-list');
+                el.innerHTML = rows.map(r => r + '<br>').join('');
+                el.contentEditable = true;
+                for (const k in sums) {
+                    const target = document.getElementById(k);
+                    if (target) target.textContent = sums[k].toFixed(2);
+                }
+            }
+
+            function resetSums() {
+                sums = { exempt: 0, zero: 0, taxable: 0, outputvat: 0 };
+            }
+
+            // Submit single entry (manual append)
+            document.getElementById('submit-btn').addEventListener('click', async () => {
+                const payload = {
+                    client_tin: document.getElementById('client_tin').value.replace(/-/g, ''),
+                    corporate_name: document.getElementById('corporate_name').value.toUpperCase(),
+                    last_name: document.getElementById('last_name').value.toUpperCase(),
+                    first_name: document.getElementById('first_name').value.toUpperCase(),
+                    middle_name: document.getElementById('middle_name').value.toUpperCase(),
+                    trade_name: document.getElementById('trade_name').value.toUpperCase(),
+                    address1: document.getElementById('address1').value.toUpperCase(),
+                    address2: document.getElementById('address2').value.toUpperCase(),
+                    rdo: document.getElementById('rdo').value,
+                    period: document.getElementById('period').value
+                };
+                const res = await fetch('/submit_sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.row) {
+                    const tinNoDashes = payload.client_tin.replace(/-/g, '');
+                    rows = rows.map(row => `${row},${tinNoDashes},${payload.period || ''}`);
+                    rows.unshift(data.row);
+                    renderList();
+                } else if (data.error) alert(data.error);
+            });
+
+            // Handle CSV upload (now points to /upload_sales)
+            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('csv-input').click());
+
+            document.getElementById('csv-input').addEventListener('change', async (ev) => {
+                const file = ev.target.files[0];
+                if (!file) return;
+                const fd = new FormData();
+                fd.append('file', file);
+
+                const res = await fetch('/upload_sales', { method: 'POST', body: fd });
+                const data = await res.json();
+
+                document.getElementById('csv-input').value = '';
+                if (data.rows) {
+                    rows = rows.concat(data.rows);
+                    sums = data.sums;
+                    renderList();
+                } else {
+                    alert(data.error || 'Upload failed');
+                }
+            });
+
+            // Clear list
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                rows = [];
+                resetSums();
+                renderList();
+            });
+
+            // Save .DAT file
+            document.getElementById('save-dat').addEventListener('click', async () => {
+                if (rows.length === 0) return alert('No data to save');
+                const el = document.getElementById('user-list');
+                rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
+                const res = await fetch('/save_dat_sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rows,
+                        client_tin: document.getElementById('client_tin').value.replace(/-/g, ''),
+                        period: document.getElementById('period').value
+                    })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = (await res.headers.get('X-Filename')) || 'output.dat';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else alert('Failed to generate .dat');
+            });
+
+            // Convert to Excel (.xlsx)
+            document.getElementById('convert-xlsx').addEventListener('click', async () => {
+                if (rows.length === 0) return alert('No data to convert');
+
+                // 🩹 Sync edited text back into the array
+                const el = document.getElementById('user-list');
+                rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
+                const res = await fetch('/convert_sales_xlsx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows })
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = (await res.headers.get('X-Filename')) || 'report.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else alert('Failed to create Excel');
+            });
+        });
+
+        // Enable arrow-key navigation between form fields
+        window.addEventListener('DOMContentLoaded', () => {
+            const inputs = Array.from(document.querySelectorAll('input.form-control'));
+            inputs.forEach((input, i) => {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); inputs[i + 1]?.focus(); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); inputs[i - 1]?.focus(); }
+                });
+             });
+        });
+    </script>
+  </body>
+</html>
