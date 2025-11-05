@@ -165,8 +165,23 @@
           <i class="fa-solid fa-file-contract me-2"></i> SAWT
         </button>
 
-        <button class="choice-btn" onclick="location.href='/qap'">
-          <i class="fa-solid fa-file-lines me-2"></i> QAP
+        <div class="dropdown-container">
+            <button class="choice-btn" id="qapBtn">
+            <i class="fa-solid fa-file-invoice-dollar me-2"></i> QAP
+            <i class="fa-solid fa-caret-down ms-2"></i>
+            </button>
+            <div id="qapSubmenu" class="submenu mt-2" style="display: none;">
+            <button class="choice-btn sub-btn" id="quarterlyBtn" style="margin-bottom: 0.3rem;">
+                <i class="fa-solid fa-chart-line me-2"></i> 1601E
+            </button>
+            <button class="choice-btn sub-btn" id="annualBtn">
+                <i class="fa-solid fa-cart-shopping me-2"></i> 1604E
+            </button>
+            </div>
+        </div>
+
+        <button class="choice-btn" onclick="location.href='/compen'">
+          <i class="fa-solid fa-file-contract me-2"></i> 1604C
         </button>
       </div>
 
@@ -202,6 +217,19 @@
         });
         document.getElementById("salesBtn").addEventListener("click", () => {
             smoothRedirect("/sales");
+        });
+
+        document.getElementById("qapBtn").addEventListener("click", () => {
+            const submenu = document.getElementById("qapSubmenu");
+            submenu.style.display = submenu.style.display === "none" ? "block" : "none";
+        });
+
+        document.getElementById("quarterlyBtn").addEventListener("click", () => {
+            smoothRedirect("/qap-quarterly");
+        });
+
+        document.getElementById("annualBtn").addEventListener("click", () => {
+            smoothRedirect("/qap-annual");
         });
     </script>
   </body>

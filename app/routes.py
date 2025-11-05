@@ -91,12 +91,20 @@ def sawt():
     # Placeholder: create sawt.html later
     return render_template('sawt.html')
 
-@main.route('/qap')
-def qap():
+@main.route('/qap-quarterly')
+def qap_quarterly():
     if 'username' not in session:
         return redirect(url_for('main.login'))
     # Placeholder: create qap.html later
-    return render_template('qap.html')
+    return render_template('quarterly.html')
+
+@main.route('/qap-annual')
+def qap_annual():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+    # Placeholder: create qap.html later
+    return render_template('annual.html')
+
 
 @main.route('/logout')
 def logout():
@@ -117,6 +125,10 @@ latest_sums_sales = {
     'zero': 0,
     'taxable': 0,
     'outputvat': 0
+}
+
+latest_sums_annual = {
+    'total': 0,
 }
 
 @main.route('/')

@@ -52,6 +52,19 @@
         flex-direction: column;
       }
 
+      .sidebar .spacer {
+        flex-grow: 1;
+      }
+
+      .sidebar-buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .sidebar-buttons a {
+        flex: 1;
+      }
+
       .sidebar h4 {
         font-weight: 600;
         margin-bottom: 1rem;
@@ -125,6 +138,30 @@
       .btn-primary:hover {
         filter: brightness(1.15);
         box-shadow: 0 0 10px var(--accent-light);
+      }
+
+      .fixed-bottom-left {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        z-index: 9999;
+      }
+
+      .fixed-bottom-left button,
+      .fixed-bottom-left a {
+        min-width: 120px;
+        text-align: center;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+
+      .fixed-bottom-left .btn:hover,
+      .fixed-bottom-left a:hover {
+        filter: brightness(1.1);
+        text-decoration: none;
       }
 
       #user-list {
@@ -206,6 +243,8 @@
       <label class="small-label">Period Covered (MM/DD/YYYY)</label>
       <input id="period" class="form-control mb-3" placeholder="mm/dd/yyyy (just type numbers)" />
 
+      <div class="spacer"></div>
+
       <div class="d-grid gap-2 mt-3">
         <button id="submit-btn" class="btn btn-primary">Submit (append)</button>
         <button id="upload-btn" class="btn btn-outline-light">Upload CSV</button>
@@ -263,6 +302,7 @@
               document.getElementById('address1').value = data.address1 || '';
               document.getElementById('address2').value = data.address2 || '';
               document.getElementById('rdo').value = data.rdo || '';
+              document.getElementById('period').focus();
             }
           } catch (e) { console.log('Client fetch error', e); }
         }

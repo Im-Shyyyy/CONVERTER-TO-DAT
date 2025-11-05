@@ -54,19 +54,6 @@
         flex-direction: column;
       }
 
-      .sidebar .spacer {
-        flex-grow: 1;
-      }
-
-      .sidebar-buttons {
-        display: flex;
-        gap: 0.5rem;
-      }
-
-      .sidebar-buttons a{
-        flex: 1;
-      }
-
       .sidebar h4 {
         font-weight: 600;
         margin-bottom: 1rem;
@@ -201,7 +188,7 @@
 
   <body>
     <div class="sidebar">
-      <h4>Summary List - Sales</h4>
+      <h4>QAP - 1601E</h4>
 
       <label class="small-label">Client TIN</label>
       <input id="client_tin" class="form-control mb-2" placeholder="XXX-XXX-XXX" maxlength="11" inputmode="numeric" pattern="[0-9\-]*" />
@@ -220,8 +207,6 @@
 
       <label class="small-label">Period Covered (MM/DD/YYYY)</label>
       <input id="period" class="form-control mb-3" placeholder="mm/dd/yyyy (just type numbers)" />
-
-      <div class="spacer"></div>
 
       <div class="d-grid gap-2 mt-3">
         <button id="submit-btn" class="btn btn-primary">Submit (append)</button>
