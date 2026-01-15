@@ -306,19 +306,26 @@
                     period: document.getElementById('period').value.trim()
                 };
 
+                const res = await fetch('/submit_quarterly', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
                 const data = await res.json();
 
-                if (data.row) {
+                if (data.header && data.data_row) {
                     // --- If no rows exist, create header only ---
                     if (!rows || rows.length === 0) {
-                        const header = `H1604E,${payload.client_tin},${payload.client_branch},${payload.period}`;
-                        rows = [header];
+                        rows = [data.header];
                     }
 
                     // --- Add new data row ---
-                    const newRow = `D3,1604E,${payload.client_tin},${payload.client_branch},${payload.period},${rows.length},${data.row}`;
-                    rows.push(newRow);
+                    rows.push(data.data_row);
 
+                    // Update sums
+                    sums = data.sums;
+                    
                     // Render updated list
                     renderList();
                 } else if (data.error) {
@@ -327,7 +334,7 @@
             });
 
 
-            // Handle CSV upload (now points to /upload_sales)
+            // Handle CSV upload for quarterly
             document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('csv-input').click());
 
             document.getElementById('csv-input').addEventListener('change', async (ev) => {
@@ -336,7 +343,7 @@
                 const fd = new FormData();
                 fd.append('file', file);
 
-                const res = await fetch('/upload_sales', { method: 'POST', body: fd });
+                const res = await fetch('/upload_quarterly', { method: 'POST', body: fd });  // Changed to /upload_quarterly
                 const data = await res.json();
 
                 document.getElementById('csv-input').value = '';
@@ -356,13 +363,13 @@
                 renderList();
             });
 
-            // Save .DAT file
+            // Save .DAT file for quarterly
             document.getElementById('save-dat').addEventListener('click', async () => {
                 if (rows.length === 0) return alert('No data to save');
                 const el = document.getElementById('user-list');
                 rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
 
-                const res = await fetch('/save_dat_sales', {
+                const res = await fetch('/save_dat_quarterly', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -376,7 +383,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = (await res.headers.get('X-Filename')) || 'output.dat';
+                    a.download = (await res.headers.get('X-Filename')) || 'quarterly.dat';
                     document.body.appendChild(a);
                     a.click();
                     a.remove();

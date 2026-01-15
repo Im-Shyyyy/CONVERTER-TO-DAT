@@ -50,11 +50,16 @@ def login_required(f):
 
 @main.route('/', methods=['GET', 'POST'])
 def login():
+    # Clear any existing session data on login
+    session.pop('latest_sums_purchases', None)
+    session.pop('latest_sums_sales', None)
+    session.pop('latest_sums_quarterly', None)
+    session.pop('latest_sums_annual', None)
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
 
-        # ⚠️ Replace this dummy check with your actual auth logic
         if username == VALID_USERNAME and password == VALID_PASSWORD:
             session['logged_in'] = True
             session['username'] = username
@@ -75,7 +80,6 @@ def dashboard():
 def vat_relief():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    # This renders your existing index.html (VAT Relief converter)
     return render_template('index.html')
 
 @main.route('/sales')
@@ -88,48 +92,25 @@ def sales():
 def sawt():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    # Placeholder: create sawt.html later
     return render_template('sawt.html')
 
 @main.route('/qap-quarterly')
 def qap_quarterly():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    # Placeholder: create qap.html later
     return render_template('quarterly.html')
 
 @main.route('/qap-annual')
 def qap_annual():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    # Placeholder: create qap.html later
     return render_template('annual.html')
 
 
 @main.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.clear()  # Clear all session data
     return redirect(url_for('main.login'))
-
-latest_sums_purchases = {
-    'exempt': 0,
-    'zero': 0,
-    'serv': 0,
-    'cap': 0,
-    'other': 0,
-    'inputtax': 0
-}
-
-latest_sums_sales = {
-    'exempt': 0,
-    'zero': 0,
-    'taxable': 0,
-    'outputvat': 0
-}
-
-latest_sums_annual = {
-    'total': 0,
-}
 
 @main.route('/')
 @login_required
@@ -139,7 +120,6 @@ def index():
 
 @main.route('/upload_csv', methods=['POST'])
 def upload_csv():
-    global latest_sums_purchases
     f = request.files.get('file')
     if not f:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -150,7 +130,7 @@ def upload_csv():
         header = next(reader, None)
 
         consolidated = {}
-        sums = {k: 0 for k in latest_sums_purchases}
+        sums = {'exempt': 0, 'zero': 0, 'serv': 0, 'cap': 0, 'other': 0, 'inputtax': 0}
 
         for row in reader:
             if not row:
@@ -194,17 +174,17 @@ def upload_csv():
 
             rows_out.append(','.join(formatted))
 
-        latest_sums_purchases = sums
+        # Store sums in session instead of global variable
+        session['latest_sums_purchases'] = sums
         return jsonify({'rows': rows_out, 'sums': sums})
 
     except Exception as e:
         import traceback
-        traceback.print_exc()  # this will print the detailed error in your terminal
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @main.route('/upload_sales', methods=['POST'])
 def upload_sales():
-    global latest_sums_sales
     f = request.files.get('file')
     if not f:
         return jsonify({'error': 'No file uploaded'}), 400
@@ -215,7 +195,6 @@ def upload_sales():
         header = next(reader, None)
 
         rows_out = []
-        # Only keep these four totals
         sums = {'exempt': 0, 'zero': 0, 'taxable': 0, 'outputvat': 0}
 
         for row in reader:
@@ -223,10 +202,8 @@ def upload_sales():
                 continue
 
             formatted = ['D', 'S']
-            # Add double quotes around columns 3–9 (like your old logic)
             for i, v in enumerate(row):
                 v = v.strip()
-                # Add quotes for text fields (for first few columns)
                 if i <= 7:
                     formatted.append(f'"{v}"' if v else '')
                 else:
@@ -235,7 +212,6 @@ def upload_sales():
                     except:
                         formatted.append(v)
 
-            # Add to sums (columns 8–11 → indices 7–10)
             try:
                 sums['exempt'] += float(row[7]) if row[7] else 0
                 sums['zero'] += float(row[8]) if row[8] else 0
@@ -246,7 +222,98 @@ def upload_sales():
 
             rows_out.append(','.join(formatted))
 
-        latest_sums_sales = sums
+        # Store sums in session instead of global variable
+        session['latest_sums_sales'] = sums
+        return jsonify({'rows': rows_out, 'sums': sums})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@main.route('/upload_quarterly', methods=['POST'])
+def upload_quarterly():
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    try:
+        content = f.stream.read().decode('ISO-8859-1').splitlines()
+        reader = csv.reader(content)
+        header = next(reader, None)
+
+        rows_out = []
+        sums = {'total': 0}
+
+        for row in reader:
+            if not row:
+                continue
+
+            # Process quarterly data
+            # You'll need to adjust this based on your actual quarterly CSV format
+            formatted = ['D', 'Q']  # Q for quarterly
+            
+            # Example processing - adjust based on your needs
+            for i, v in enumerate(row):
+                v = v.strip()
+                if i <= 5:  # Adjust this based on your CSV format
+                    formatted.append(f'"{v}"' if v else '')
+                else:
+                    try:
+                        formatted.append(f"{float(v):.2f}")
+                        if i == 6:  # Assuming column 7 is the withholding amount
+                            sums['total'] += float(v)
+                    except:
+                        formatted.append(v)
+
+            rows_out.append(','.join(formatted))
+
+        session['latest_sums_quarterly'] = sums
+        return jsonify({'rows': rows_out, 'sums': sums})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@main.route('/upload_annual', methods=['POST'])
+def upload_annual():
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    try:
+        content = f.stream.read().decode('ISO-8859-1').splitlines()
+        reader = csv.reader(content)
+        header = next(reader, None)
+
+        rows_out = []
+        sums = {'total': 0}
+
+        for row in reader:
+            if not row:
+                continue
+
+            # Process annual data
+            # You'll need to adjust this based on your actual annual CSV format
+            formatted = ['D', 'A']  # A for annual
+            
+            # Example processing - adjust based on your needs
+            for i, v in enumerate(row):
+                v = v.strip()
+                if i <= 5:  # Adjust this based on your CSV format
+                    formatted.append(f'"{v}"' if v else '')
+                else:
+                    try:
+                        formatted.append(f"{float(v):.2f}")
+                        if i == 6:  # Assuming column 7 is the withholding amount
+                            sums['total'] += float(v)
+                    except:
+                        formatted.append(v)
+
+            rows_out.append(','.join(formatted))
+
+        session['latest_sums_annual'] = sums
         return jsonify({'rows': rows_out, 'sums': sums})
 
     except Exception as e:
@@ -256,7 +323,6 @@ def upload_sales():
     
 @main.route('/submit_sales', methods=['POST'])
 def submit_sales():
-    global latest_sums_sales
     data = request.get_json() or {}
 
     def q(v): return f'"{(v or "").upper()}"'
@@ -294,13 +360,17 @@ def submit_sales():
         ))
         conn.commit()
     except Exception as e:
-        # log error but continue; do not break submit behavior
         print("DB save error:", e)
     finally:
         try:
             conn.close()
         except:
             pass
+
+    # Get sums from session with default values
+    sums = session.get('latest_sums_sales', {
+        'exempt': 0, 'zero': 0, 'taxable': 0, 'outputvat': 0
+    })
 
     new_data = [
         'H,S',
@@ -312,10 +382,10 @@ def submit_sales():
         q(data.get('trade_name')),
         q(data.get('address1')),
         q(data.get('address2')),
-        f"{latest_sums_sales['exempt']:.2f}",
-        f"{latest_sums_sales['zero']:.2f}",
-        f"{latest_sums_sales['taxable']:.2f}",
-        f"{latest_sums_sales['outputvat']:.2f}",
+        f"{sums['exempt']:.2f}",
+        f"{sums['zero']:.2f}",
+        f"{sums['taxable']:.2f}",
+        f"{sums['outputvat']:.2f}",
         rdo,
         period,
         "12"
@@ -325,7 +395,6 @@ def submit_sales():
 
 @main.route('/submit_entry', methods=['POST'])
 def submit_entry():
-    global latest_sums_purchases
     data = request.get_json() or {}
 
     def q(v): return f'"{(v or "").upper()}"'
@@ -363,13 +432,17 @@ def submit_entry():
         ))
         conn.commit()
     except Exception as e:
-        # log error but continue; do not break submit behavior
         print("DB save error:", e)
     finally:
         try:
             conn.close()
         except:
             pass
+
+    # Get sums from session with default values
+    sums = session.get('latest_sums_purchases', {
+        'exempt': 0, 'zero': 0, 'serv': 0, 'cap': 0, 'other': 0, 'inputtax': 0
+    })
 
     new_data = [
         'H,P',
@@ -381,13 +454,13 @@ def submit_entry():
         q(data.get('trade_name')),
         q(data.get('address1')),
         q(data.get('address2')),
-        f"{latest_sums_purchases['exempt']:.2f}",
-        f"{latest_sums_purchases['zero']:.2f}",
-        f"{latest_sums_purchases['serv']:.2f}",
-        f"{latest_sums_purchases['cap']:.2f}",
-        f"{latest_sums_purchases['other']:.2f}",
-        f"{latest_sums_purchases['inputtax']:.2f}",
-        f"{latest_sums_purchases['inputtax']:.2f}",
+        f"{sums['exempt']:.2f}",
+        f"{sums['zero']:.2f}",
+        f"{sums['serv']:.2f}",
+        f"{sums['cap']:.2f}",
+        f"{sums['other']:.2f}",
+        f"{sums['inputtax']:.2f}",
+        f"{sums['inputtax']:.2f}",
         "0.00",
         rdo,
         period,
@@ -396,9 +469,46 @@ def submit_entry():
 
     return jsonify({'row': ','.join(new_data)})
 
+@main.route('/submit_quarterly', methods=['POST'])
+def submit_quarterly():
+    data = request.get_json() or {}
+
+    client_tin = (data.get('client_tin') or '').replace('-', '')
+    client_branch = (data.get('client_branch') or '').zfill(4)
+    period = (data.get('period') or '')
+
+    # Get sums from session with default values
+    sums = session.get('latest_sums_quarterly', {'total': 0})
+
+    # Format for quarterly (adjust based on your needs)
+    header = f"H,1601EQ,{client_tin},{client_branch},{period}"
+    
+    # Create data row (adjust based on your needs)
+    data_row = f"D,1601EQ,{client_tin},{client_branch},{period},001,{sums['total']:.2f}"
+
+    return jsonify({'header': header, 'data_row': data_row, 'sums': sums})
+
+@main.route('/submit_annual', methods=['POST'])
+def submit_annual():
+    data = request.get_json() or {}
+
+    client_tin = (data.get('client_tin') or '').replace('-', '')
+    client_branch = (data.get('client_branch') or '').zfill(4)
+    period = (data.get('period') or '')
+
+    # Get sums from session with default values
+    sums = session.get('latest_sums_annual', {'total': 0})
+
+    # Format for annual (adjust based on your needs)
+    header = f"H,1604E,{client_tin},{client_branch},{period}"
+    
+    # Create data row (adjust based on your needs)
+    data_row = f"D,1604E,{client_tin},{client_branch},{period},001,{sums['total']:.2f}"
+
+    return jsonify({'header': header, 'data_row': data_row, 'sums': sums})
+
 @main.route('/get_client/<tin>', methods=['GET'])
 def get_client(tin):
-    # normalize: remove dashes
     tin_norm = (tin or '').replace('-', '').strip()
 
     if not tin_norm:
@@ -485,6 +595,52 @@ def save_dat_sales():
     response.headers['X-Filename'] = default_name
     return response
 
+@main.route('/save_dat_quarterly', methods=['POST'])
+def save_dat_quarterly():
+    payload = request.get_json() or {}
+    rows = payload.get('rows') or []
+    client_tin = (payload.get('client_tin') or '').replace('-', '')
+    period = payload.get('period') or ''
+    
+    default_name = f"{client_tin}Q{period.replace('/', '')}.dat" if client_tin else 'quarterly.dat'
+
+    bio = io.StringIO()
+    for line in rows:
+        bio.write(line + '\n')
+    bio.seek(0)
+
+    response = send_file(
+        io.BytesIO(bio.getvalue().encode('utf-8')),
+        mimetype='text/plain',
+        as_attachment=True,
+        download_name=default_name
+    )
+    response.headers['X-Filename'] = default_name
+    return response
+
+@main.route('/save_dat_annual', methods=['POST'])
+def save_dat_annual():
+    payload = request.get_json() or {}
+    rows = payload.get('rows') or []
+    client_tin = (payload.get('client_tin') or '').replace('-', '')
+    period = payload.get('period') or ''
+    
+    default_name = f"{client_tin}A{period.replace('/', '')}.dat" if client_tin else 'annual.dat'
+
+    bio = io.StringIO()
+    for line in rows:
+        bio.write(line + '\n')
+    bio.seek(0)
+
+    response = send_file(
+        io.BytesIO(bio.getvalue().encode('utf-8')),
+        mimetype='text/plain',
+        as_attachment=True,
+        download_name=default_name
+    )
+    response.headers['X-Filename'] = default_name
+    return response
+
 
 @main.route('/convert_xlsx', methods=['POST'])
 def convert_xlsx():
@@ -493,7 +649,6 @@ def convert_xlsx():
     if not rows:
         return jsonify({'error': 'No rows provided'}), 400
 
-    # Parse rows into columns (skip first row like the original)
     processed = []
     for idx, line in enumerate(rows):
         if idx == 0:
@@ -527,7 +682,6 @@ def convert_xlsx():
     if not processed:
         return jsonify({'error': 'No valid data to convert'}), 400
 
-    # Create workbook
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -626,7 +780,6 @@ def convert_xlsx():
     ws[f"A{end_of_report_row}"] = "END OF REPORT"
     ws[f"A{end_of_report_row}"].font = Font(size=10)
 
-    # Save to memory
     bio = io.BytesIO()
     wb.save(bio)
     bio.seek(0)
@@ -645,7 +798,6 @@ def convert_sales_xlsx():
     if not rows:
         return jsonify({'error': 'No rows provided'}), 400
 
-    # Parse rows into columns (skip first row like the original)
     processed = []
     for idx, line in enumerate(rows):
         if idx == 0:
@@ -664,19 +816,18 @@ def convert_sales_xlsx():
             cols[3] if len(cols) > 3 else '',
             f"{cols[4]}, {cols[5]} {cols[6]}",
             f"{cols[7]} {cols[8]}",
-            sum(numeric_values[0:3]),    #Gross Sales
-            numeric_values[0],          #Exempt Sales
-            numeric_values[1],          #Zero Rated Sales
-            numeric_values[2],          #Taxable Sales
-            numeric_values[3],          #Output Tax
-            sum(numeric_values[2:4])    #Gross Taxable Sales
+            sum(numeric_values[0:3]),
+            numeric_values[0],
+            numeric_values[1],
+            numeric_values[2],
+            numeric_values[3],
+            sum(numeric_values[2:4])
         ]
         processed.append(formatted_row)
 
     if not processed:
         return jsonify({'error': 'No valid data to convert'}), 400
 
-    # Create workbook
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -766,7 +917,6 @@ def convert_sales_xlsx():
     ws[f"A{end_of_report_row}"] = "END OF REPORT"
     ws[f"A{end_of_report_row}"].font = Font(size=10)
 
-    # Save to memory
     bio = io.BytesIO()
     wb.save(bio)
     bio.seek(0)
@@ -777,4 +927,3 @@ def convert_sales_xlsx():
         as_attachment=True,
         download_name="Excel Report.xlsx"
     )
-
