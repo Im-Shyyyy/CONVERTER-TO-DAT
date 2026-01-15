@@ -1,461 +1,1024 @@
-<!-- templates/vat_relief.html -->
-{% extends "base.html" %}
-
-{% block title %}VAT Relief - CSV → DAT Converter{% endblock %}
-
-{% block sidebar %}
-<div class="sidebar">
-  <h4><i class="fas fa-shopping-cart me-2"></i>VAT Relief - Purchases</h4>
-
-  <label class="small-label">Client TIN</label>
-  <input id="client_tin" class="form-control mb-2" 
-         data-format="tin" data-validate="tin"
-         placeholder="XXX-XXX-XXX" maxlength="11" 
-         inputmode="numeric" pattern="[0-9\-]*" />
-
-  <label class="small-label">Name & Address</label>
-  <input id="corporate_name" class="form-control mb-1" placeholder="Corporate name" />
-  <input id="last_name" class="form-control mb-1" placeholder="Last name" />
-  <input id="first_name" class="form-control mb-1" placeholder="First name" />
-  <input id="middle_name" class="form-control mb-1" placeholder="Middle name" />
-  <input id="trade_name" class="form-control mb-1" placeholder="Trade name" />
-  <input id="address1" class="form-control mb-1" placeholder="Street, Barangay" />
-  <input id="address2" class="form-control mb-1" placeholder="Municipality/City, Zip" />
-
-  <label class="small-label mt-2">RDO</label>
-  <input id="rdo" class="form-control mb-2" placeholder="e.g. 001" data-validate="required" />
-
-  <label class="small-label">Period Covered (MM/DD/YYYY)</label>
-  <input id="period" class="form-control mb-3" 
-         data-format="date" data-validate="date"
-         placeholder="mm/dd/yyyy" />
-
-  <div class="spacer"></div>
-
-  <div class="d-grid gap-2 mt-3">
-    <button id="submit-btn" class="btn btn-primary">
-      <i class="fas fa-plus-circle me-2"></i>Submit (append)
-    </button>
-    <button id="upload-btn" class="btn btn-outline-light">
-      <i class="fas fa-upload me-2"></i>Upload CSV
-    </button>
-    <input id="csv-input" type="file" accept=".csv" style="display:none" />
-    <button id="clear-btn" class="btn btn-danger">
-      <i class="fas fa-trash me-2"></i>Clear List
-    </button>
-  </div>
-
-  <div class="sidebar-buttons d-flex gap-2 mt-3">
-    <a href="/dashboard" class="menu-btn">
-      <i class="fas fa-bars me-2"></i>Menu
-    </a>
-    <a href="/logout" class="logout-btn">
-      <i class="fas fa-sign-out-alt me-2"></i>Logout
-    </a>
-  </div>
-</div>
-{% endblock %}
-
-{% block content %}
-<div class="card p-4 flex-grow-1 d-flex flex-column">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="text-info mb-0">
-      <i class="fas fa-eye me-2"></i>Data Preview
-    </h6>
-    <div class="input-group" style="max-width: 300px;">
-      <span class="input-group-text bg-dark border-secondary">
-        <i class="fas fa-search"></i>
-      </span>
-      <input type="text" id="search-input" class="form-control" 
-             placeholder="Search in data...">
-    </div>
-  </div>
-  
-  <div id="user-list" class="data-preview-container flex-grow-1"></div>
-
-  <div class="sum-box compact mt-3">
-    <h6 class="text-info mb-2">
-      <i class="fas fa-calculator me-2"></i>Sums
-    </h6>
-    <div id="sums" class="row row-cols-2 g-1">
-      <div class="sum-item"><span class="summary-label">Exempt</span><span id="exempt" class="summary-value">0.00</span></div>
-      <div class="sum-item"><span class="summary-label">Zero Rated</span><span id="zero" class="summary-value">0.00</span></div>
-      <div class="sum-item"><span class="summary-label">Services</span><span id="serv" class="summary-value">0.00</span></div>
-      <div class="sum-item"><span class="summary-label">Capital Goods</span><span id="cap" class="summary-value">0.00</span></div>
-      <div class="sum-item"><span class="summary-label">Other Goods</span><span id="other" class="summary-value">0.00</span></div>
-      <div class="sum-item"><span class="summary-label">Input Tax</span><span id="inputtax" class="summary-value">0.00</span></div>
-    </div>
-  </div>
-
-  <div class="d-flex gap-2 mt-3 flex-wrap">
-    <button id="save-dat" class="btn btn-success flex-grow-1">
-      <i class="fas fa-save me-2"></i>Save .DAT
-    </button>
-    <button id="convert-xlsx" class="btn btn-warning flex-grow-1">
-      <i class="fas fa-file-excel me-2"></i>Convert → Excel
-    </button>
-    <button id="export-json" class="btn btn-info flex-grow-1">
-      <i class="fas fa-download me-2"></i>Export JSON
-    </button>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script type="module">
-  import { showToast, showProgress, setButtonLoading } from "{{ url_for('static', filename='js/ui-helpers.js') }}";
-  import { validateTIN, validateDate } from "{{ url_for('static', filename='js/validators.js') }}";
-
-  // Global data storage
-  window.rows = [];
-  window.sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 };
-
-  // Initialize
-  document.addEventListener('DOMContentLoaded', () => {
-    loadFromLocalStorage();
-    setupEventListeners();
-    setupSearch();
-  });
-
-  function loadFromLocalStorage() {
-    const saved = localStorage.getItem('vat_relief_draft');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        window.rows = data.rows || [];
-        window.sums = data.sums || window.sums;
-        renderList();
-        showToast('Draft Loaded', 'Previous data restored from draft', 'info');
-      } catch (e) {
-        console.error('Failed to load draft:', e);
-      }
-    }
-  }
-
-  function saveToLocalStorage() {
-    const data = {
-      rows: window.rows,
-      sums: window.sums,
-      timestamp: new Date().toISOString(),
-      client_tin: document.getElementById('client_tin').value
-    };
-    localStorage.setItem('vat_relief_draft', JSON.stringify(data));
-  }
-
-  function setupSearch() {
-    const searchInput = document.getElementById('search-input');
-    searchInput.addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase();
-      const lines = window.rows;
-      const preview = document.getElementById('user-list');
-      
-      preview.innerHTML = lines.map((r, i) => {
-        const match = r.toLowerCase().includes(term);
-        const display = match ? 
-          `<span class="search-highlight">${r}</span>` : r;
-        return `${display}<br>`;
-      }).join('');
-    });
-  }
-
-  function setupEventListeners() {
-    // Auto-fetch client on TIN blur
-    const tinInput = document.getElementById('client_tin');
-    tinInput.addEventListener('blur', async () => {
-      const val = tinInput.value.trim();
-      if (val && validateTIN(val)) {
-        await fetchAndFillClient(val);
-      }
-    });
-
-    // Submit button
-    document.getElementById('submit-btn').addEventListener('click', handleSubmit);
-
-    // Upload CSV
-    document.getElementById('upload-btn').addEventListener('click', () => {
-      document.getElementById('csv-input').click();
-    });
-
-    document.getElementById('csv-input').addEventListener('change', handleFileUpload);
-
-    // Clear button
-    document.getElementById('clear-btn').addEventListener('click', () => {
-      if (window.rows.length > 0) {
-        showModal('Clear Data', 'Are you sure you want to clear all data?', [
-          { text: 'Cancel', type: 'secondary', action: 'cancel' },
-          { text: 'Clear All', type: 'danger', action: 'clear' }
-        ]).then(action => {
-          if (action === 'clear') {
-            window.rows = [];
-            resetSums();
-            renderList();
-            localStorage.removeItem('vat_relief_draft');
-            showToast('Cleared', 'All data cleared', 'success');
-          }
-        });
-      }
-    });
-
-    // Save .DAT
-    document.getElementById('save-dat').addEventListener('click', handleSaveDAT);
-
-    // Convert to Excel
-    document.getElementById('convert-xlsx').addEventListener('click', handleConvertExcel);
-
-    // Export JSON
-    document.getElementById('export-json').addEventListener('click', handleExportJSON);
-
-    // Auto-save on changes
-    const observer = new MutationObserver(() => {
-      saveToLocalStorage();
-    });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAT Relief - CSV → DAT Converter</title>
     
-    const preview = document.getElementById('user-list');
-    observer.observe(preview, { childList: true, subtree: true });
-  }
-
-  async function fetchAndFillClient(tin) {
-    const hideProgress = showProgress('Fetching client data...');
-    try {
-      const tinNorm = tin.replace(/-/g, '');
-      const res = await fetch(`/get_client/${tinNorm}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.found) {
-          document.getElementById('corporate_name').value = data.corporate_name || '';
-          document.getElementById('last_name').value = data.last_name || '';
-          document.getElementById('first_name').value = data.first_name || '';
-          document.getElementById('middle_name').value = data.middle_name || '';
-          document.getElementById('trade_name').value = data.trade_name || '';
-          document.getElementById('address1').value = data.address1 || '';
-          document.getElementById('address2').value = data.address2 || '';
-          document.getElementById('rdo').value = data.rdo || '';
-          document.getElementById('period').focus();
-          showToast('Client Found', 'Client details loaded', 'success');
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-darker: #0a0f1c;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #06b6d4;
         }
-      }
-    } catch (e) {
-      console.error('Client fetch error:', e);
-    } finally {
-      hideProgress();
-    }
-  }
+        
+        body {
+            background-color: var(--bg-darker);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: var(--bg-dark);
+            width: 320px;
+            min-width: 320px;
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .sidebar h4 {
+            color: var(--info);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .small-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .form-control {
+            background-color: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-size: 0.9rem;
+            padding: 8px 12px;
+        }
+        
+        .form-control:focus {
+            background-color: var(--bg-card);
+            border-color: var(--primary);
+            color: var(--text-light);
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+        }
+        
+        .form-control::placeholder {
+            color: #64748b;
+        }
+        
+        .spacer {
+            flex-grow: 1;
+        }
+        
+        .sidebar-buttons {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .menu-btn, .logout-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .menu-btn {
+            background-color: var(--bg-card);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+        }
+        
+        .menu-btn:hover {
+            background-color: #2d3748;
+            color: var(--text-light);
+        }
+        
+        .logout-btn {
+            background-color: var(--danger);
+            color: white;
+            border: 1px solid var(--danger);
+        }
+        
+        .logout-btn:hover {
+            background-color: #dc2626;
+            color: white;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        
+        .data-preview-container {
+            background-color: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            min-height: 300px;
+            max-height: 400px;
+        }
+        
+        .data-preview-container:focus {
+            outline: 1px solid var(--primary);
+        }
+        
+        .search-highlight {
+            background-color: rgba(251, 191, 36, 0.3);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+        
+        /* Sum Box Styles */
+        .sum-box {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .sum-box.compact {
+            padding: 12px;
+        }
+        
+        .sum-box h6 {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        
+        .sum-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: rgba(30, 41, 59, 0.5);
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .summary-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        
+        /* Button Styles */
+        .btn {
+            font-weight: 500;
+            padding: 10px 16px;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+        
+        .btn-outline-light {
+            color: var(--text-light);
+            border-color: var(--border-color);
+        }
+        
+        .btn-outline-light:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--border-color);
+            color: var(--text-light);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            border-color: var(--success);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            border-color: var(--warning);
+            color: #000;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+        }
+        
+        .btn-info {
+            background-color: var(--info);
+            border-color: var(--info);
+        }
+        
+        /* Toast Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1055;
+            max-width: 350px;
+        }
+        
+        .toast {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .toast-header {
+            background-color: var(--bg-dark);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-light);
+        }
+        
+        /* Modal Styles */
+        .modal-content {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Progress Overlay */
+        .progress-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .progress-content {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-width: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar {
+                padding: 15px;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .d-flex.flex-wrap > .btn {
+                min-width: 100%;
+                margin-bottom: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h4><i class="fas fa-shopping-cart me-2"></i>VAT Relief - Purchases</h4>
 
-  function renderList() {
-    const el = document.getElementById('user-list');
-    el.innerHTML = window.rows.map(r => r + '<br>').join('');
-    el.contentEditable = true;
-    
-    // Update sums display
-    for (const k in window.sums) {
-      const target = document.getElementById(k);
-      if (target) target.textContent = window.sums[k].toFixed(2);
-    }
-  }
+            <label class="small-label">Client TIN</label>
+            <input id="client_tin" class="form-control mb-2" 
+                   data-format="tin" data-validate="tin"
+                   placeholder="XXX-XXX-XXX" maxlength="11" 
+                   inputmode="numeric" pattern="[0-9\-]*" />
 
-  function resetSums() {
-    window.sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 };
-  }
+            <label class="small-label">Name & Address</label>
+            <input id="corporate_name" class="form-control mb-1" placeholder="Corporate name" />
+            <input id="last_name" class="form-control mb-1" placeholder="Last name" />
+            <input id="first_name" class="form-control mb-1" placeholder="First name" />
+            <input id="middle_name" class="form-control mb-1" placeholder="Middle name" />
+            <input id="trade_name" class="form-control mb-1" placeholder="Trade name" />
+            <input id="address1" class="form-control mb-1" placeholder="Street, Barangay" />
+            <input id="address2" class="form-control mb-1" placeholder="Municipality/City, Zip" />
 
-  async function handleSubmit() {
-    const submitBtn = document.getElementById('submit-btn');
-    setButtonLoading(submitBtn, true);
-    
-    try {
-      // Validate inputs
-      const errors = [];
-      if (!validateTIN(document.getElementById('client_tin').value)) {
-        errors.push('Valid TIN is required');
-      }
-      if (!validateDate(document.getElementById('period').value)) {
-        errors.push('Valid period date is required');
-      }
-      
-      if (errors.length > 0) {
-        showToast('Validation Error', errors.join('<br>'), 'danger');
-        return;
-      }
-      
-      const payload = {
-        client_tin: document.getElementById('client_tin').value.replace(/-/g, ''),
-        corporate_name: document.getElementById('corporate_name').value.toUpperCase(),
-        last_name: document.getElementById('last_name').value.toUpperCase(),
-        first_name: document.getElementById('first_name').value.toUpperCase(),
-        middle_name: document.getElementById('middle_name').value.toUpperCase(),
-        trade_name: document.getElementById('trade_name').value.toUpperCase(),
-        address1: document.getElementById('address1').value.toUpperCase(),
-        address2: document.getElementById('address2').value.toUpperCase(),
-        rdo: document.getElementById('rdo').value,
-        period: document.getElementById('period').value
-      };
-      
-      const res = await fetch('/submit_entry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const data = await res.json();
-      if (data.row) {
-        const tinNoDashes = payload.client_tin.replace(/-/g, '');
-        window.rows = window.rows.map(row => `${row},${tinNoDashes},${payload.period || ''}`);
-        window.rows.unshift(data.row);
-        renderList();
-        showToast('Success', 'Entry added successfully', 'success');
-      } else if (data.error) {
-        showToast('Error', data.error, 'danger');
-      }
-    } catch (error) {
-      showToast('Error', 'Failed to submit entry', 'danger');
-      console.error('Submit error:', error);
-    } finally {
-      setButtonLoading(submitBtn, false);
-    }
-  }
+            <label class="small-label mt-2">RDO</label>
+            <input id="rdo" class="form-control mb-2" placeholder="e.g. 001" data-validate="required" />
 
-  async function handleFileUpload(ev) {
-    const file = ev.target.files[0];
-    if (!file) return;
-    
-    const hideProgress = showProgress('Uploading CSV...');
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/upload_csv', { method: 'POST', body: fd });
-      const data = await res.json();
-      
-      document.getElementById('csv-input').value = '';
-      
-      if (data.rows) {
-        window.rows = window.rows.concat(data.rows);
-        window.sums = data.sums;
-        renderList();
-        showToast('Upload Success', `${data.rows.length} rows processed`, 'success');
-      } else {
-        showToast('Upload Failed', data.error || 'Upload failed', 'danger');
-      }
-    } catch (error) {
-      showToast('Upload Error', 'Failed to process CSV', 'danger');
-      console.error('Upload error:', error);
-    } finally {
-      hideProgress();
-    }
-  }
+            <label class="small-label">Period Covered (MM/DD/YYYY)</label>
+            <input id="period" class="form-control mb-3" 
+                   data-format="date" data-validate="date"
+                   placeholder="mm/dd/yyyy" />
 
-  async function handleSaveDAT() {
-    if (window.rows.length === 0) {
-      showToast('No Data', 'No data to save', 'warning');
-      return;
-    }
-    
-    const hideProgress = showProgress('Generating DAT file...');
-    try {
-      const el = document.getElementById('user-list');
-      window.rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
-      
-      const res = await fetch('/save_dat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rows: window.rows,
-          client_tin: document.getElementById('client_tin').value.replace(/-/g, ''),
-          period: document.getElementById('period').value
-        })
-      });
-      
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = res.headers.get('X-Filename') || 'output.dat';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        showToast('Download Started', 'DAT file is being downloaded', 'success');
-      } else {
-        showToast('Save Failed', 'Failed to generate .dat file', 'danger');
-      }
-    } catch (error) {
-      showToast('Error', 'Failed to save file', 'danger');
-      console.error('Save error:', error);
-    } finally {
-      hideProgress();
-    }
-  }
+            <div class="spacer"></div>
 
-  async function handleConvertExcel() {
-    if (window.rows.length === 0) {
-      showToast('No Data', 'No data to convert', 'warning');
-      return;
-    }
-    
-    const hideProgress = showProgress('Generating Excel file...');
-    try {
-      const el = document.getElementById('user-list');
-      window.rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
-      
-      const res = await fetch('/convert_xlsx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows: window.rows })
-      });
-      
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = res.headers.get('X-Filename') || 'report.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        showToast('Download Started', 'Excel file is being downloaded', 'success');
-      } else {
-        showToast('Conversion Failed', 'Failed to create Excel', 'danger');
-      }
-    } catch (error) {
-      showToast('Error', 'Failed to convert to Excel', 'danger');
-      console.error('Convert error:', error);
-    } finally {
-      hideProgress();
-    }
-  }
+            <div class="d-grid gap-2 mt-3">
+                <button id="submit-btn" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Submit (append)
+                </button>
+                <button id="upload-btn" class="btn btn-outline-light">
+                    <i class="fas fa-upload me-2"></i>Upload CSV
+                </button>
+                <input id="csv-input" type="file" accept=".csv" style="display:none" />
+                <button id="clear-btn" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Clear List
+                </button>
+            </div>
 
-  function handleExportJSON() {
-    if (window.rows.length === 0) {
-      showToast('No Data', 'No data to export', 'warning');
-      return;
-    }
-    
-    const data = {
-      metadata: {
-        client_tin: document.getElementById('client_tin').value,
-        period: document.getElementById('period').value,
-        generated: new Date().toISOString(),
-        type: 'vat_relief_purchases'
-      },
-      rows: window.rows,
-      sums: window.sums,
-      totals: {
-        exempt: window.sums.exempt,
-        zero: window.sums.zero,
-        services: window.sums.serv,
-        capital_goods: window.sums.cap,
-        other_goods: window.sums.other,
-        input_tax: window.sums.inputtax
-      }
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `vat_relief_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    showToast('Export Complete', 'JSON file downloaded', 'success');
-  }
-</script>
-{% endblock %}
+            <div class="sidebar-buttons d-flex gap-2 mt-3">
+                <a href="#" id="menu-btn" class="menu-btn">
+                    <i class="fas fa-bars me-2"></i>Menu
+                </a>
+                <a href="#" id="logout-btn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="card p-4 flex-grow-1 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-info mb-0">
+                        <i class="fas fa-eye me-2"></i>Data Preview
+                    </h6>
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-dark border-secondary">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="search-input" class="form-control" 
+                               placeholder="Search in data...">
+                    </div>
+                </div>
+                
+                <div id="user-list" class="data-preview-container flex-grow-1"></div>
+
+                <div class="sum-box compact mt-3">
+                    <h6 class="text-info mb-2">
+                        <i class="fas fa-calculator me-2"></i>Sums
+                    </h6>
+                    <div id="sums" class="row row-cols-2 g-1">
+                        <div class="sum-item"><span class="summary-label">Exempt</span><span id="exempt" class="summary-value">0.00</span></div>
+                        <div class="sum-item"><span class="summary-label">Zero Rated</span><span id="zero" class="summary-value">0.00</span></div>
+                        <div class="sum-item"><span class="summary-label">Services</span><span id="serv" class="summary-value">0.00</span></div>
+                        <div class="sum-item"><span class="summary-label">Capital Goods</span><span id="cap" class="summary-value">0.00</span></div>
+                        <div class="sum-item"><span class="summary-label">Other Goods</span><span id="other" class="summary-value">0.00</span></div>
+                        <div class="sum-item"><span class="summary-label">Input Tax</span><span id="inputtax" class="summary-value">0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <button id="save-dat" class="btn btn-success flex-grow-1">
+                        <i class="fas fa-save me-2"></i>Save .DAT
+                    </button>
+                    <button id="convert-xlsx" class="btn btn-warning flex-grow-1">
+                        <i class="fas fa-file-excel me-2"></i>Convert → Excel
+                    </button>
+                    <button id="export-json" class="btn btn-info flex-grow-1">
+                        <i class="fas fa-download me-2"></i>Export JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Global data storage
+        window.rows = [];
+        window.sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 };
+        
+        // UI Helper Functions
+        function showToast(title, message, type = 'info') {
+            const toastId = 'toast-' + Date.now();
+            const toastHTML = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2 text-${type}"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <small>Just now</small>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            const container = document.querySelector('.toast-container');
+            container.insertAdjacentHTML('beforeend', toastHTML);
+            
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                this.remove();
+            });
+        }
+        
+        function showProgress(message) {
+            const overlay = document.createElement('div');
+            overlay.className = 'progress-overlay';
+            overlay.innerHTML = `
+                <div class="progress-content">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 class="mt-3">${message}</h5>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            return function() {
+                overlay.remove();
+            };
+        }
+        
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                const originalHTML = button.innerHTML;
+                button.setAttribute('data-original-html', originalHTML);
+                button.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...`;
+            } else {
+                button.disabled = false;
+                const originalHTML = button.getAttribute('data-original-html');
+                if (originalHTML) {
+                    button.innerHTML = originalHTML;
+                }
+            }
+        }
+        
+        function showModal(title, message, buttons) {
+            return new Promise((resolve) => {
+                const modalId = 'modal-' + Date.now();
+                const modalHTML = `
+                    <div class="modal fade" id="${modalId}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">${title}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>${message}</p>
+                                </div>
+                                <div class="modal-footer">
+                                    ${buttons.map(btn => 
+                                        `<button type="button" class="btn btn-${btn.type}" data-action="${btn.action}">${btn.text}</button>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                const modalEl = document.getElementById(modalId);
+                const modal = new bootstrap.Modal(modalEl);
+                
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    modalEl.remove();
+                });
+                
+                modalEl.querySelectorAll('.modal-footer button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const action = button.getAttribute('data-action');
+                        resolve(action);
+                        modal.hide();
+                    });
+                });
+                
+                modal.show();
+            });
+        }
+        
+        // Validation Functions
+        function validateTIN(tin) {
+            if (!tin) return false;
+            const cleaned = tin.replace(/-/g, '');
+            return /^\d{9}$/.test(cleaned);
+        }
+        
+        function validateDate(dateStr) {
+            if (!dateStr) return false;
+            const parts = dateStr.split('/');
+            if (parts.length !== 3) return false;
+            
+            const month = parseInt(parts[0], 10);
+            const day = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+            
+            if (month < 1 || month > 12) return false;
+            if (day < 1 || day > 31) return false;
+            if (year < 1900 || year > 2100) return false;
+            
+            return true;
+        }
+        
+        // Core Application Functions
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('vat_relief_draft');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    window.rows = data.rows || [];
+                    window.sums = data.sums || window.sums;
+                    renderList();
+                    showToast('Draft Loaded', 'Previous data restored from draft', 'info');
+                } catch (e) {
+                    console.error('Failed to load draft:', e);
+                }
+            }
+        }
+        
+        function saveToLocalStorage() {
+            const data = {
+                rows: window.rows,
+                sums: window.sums,
+                timestamp: new Date().toISOString(),
+                client_tin: document.getElementById('client_tin').value
+            };
+            localStorage.setItem('vat_relief_draft', JSON.stringify(data));
+        }
+        
+        function setupSearch() {
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const lines = window.rows;
+                const preview = document.getElementById('user-list');
+                
+                preview.innerHTML = lines.map((r, i) => {
+                    const match = r.toLowerCase().includes(term);
+                    const display = match ? 
+                        `<span class="search-highlight">${r}</span>` : r;
+                    return `${display}<br>`;
+                }).join('');
+            });
+        }
+        
+        async function fetchAndFillClient(tin) {
+            const hideProgress = showProgress('Fetching client data...');
+            try {
+                // For standalone version, we'll simulate client data
+                // In a real app, you would fetch from an API
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Simulated client data
+                const mockClientData = {
+                    corporate_name: 'EXAMPLE CORPORATION INC.',
+                    last_name: 'DELA CRUZ',
+                    first_name: 'JUAN',
+                    middle_name: 'SANTOS',
+                    trade_name: 'EXAMPLE TRADING',
+                    address1: '123 MAIN ST, BRGY. SAN JOSE',
+                    address2: 'QUEZON CITY, 1100',
+                    rdo: '042'
+                };
+                
+                document.getElementById('corporate_name').value = mockClientData.corporate_name;
+                document.getElementById('last_name').value = mockClientData.last_name;
+                document.getElementById('first_name').value = mockClientData.first_name;
+                document.getElementById('middle_name').value = mockClientData.middle_name;
+                document.getElementById('trade_name').value = mockClientData.trade_name;
+                document.getElementById('address1').value = mockClientData.address1;
+                document.getElementById('address2').value = mockClientData.address2;
+                document.getElementById('rdo').value = mockClientData.rdo;
+                document.getElementById('period').focus();
+                
+                showToast('Client Found', 'Client details loaded', 'success');
+            } catch (e) {
+                console.error('Client fetch error:', e);
+                showToast('Error', 'Could not fetch client data', 'danger');
+            } finally {
+                hideProgress();
+            }
+        }
+        
+        function renderList() {
+            const el = document.getElementById('user-list');
+            if (window.rows.length === 0) {
+                el.innerHTML = '<div class="text-muted text-center py-4">No data yet. Add entries or upload a CSV file.</div>';
+                el.contentEditable = false;
+            } else {
+                el.innerHTML = window.rows.map(r => r + '<br>').join('');
+                el.contentEditable = true;
+            }
+            
+            // Update sums display
+            for (const k in window.sums) {
+                const target = document.getElementById(k);
+                if (target) target.textContent = window.sums[k].toFixed(2);
+            }
+        }
+        
+        function resetSums() {
+            window.sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 };
+        }
+        
+        async function handleSubmit() {
+            const submitBtn = document.getElementById('submit-btn');
+            setButtonLoading(submitBtn, true);
+            
+            try {
+                // Validate inputs
+                const errors = [];
+                if (!validateTIN(document.getElementById('client_tin').value)) {
+                    errors.push('Valid TIN is required');
+                }
+                if (!validateDate(document.getElementById('period').value)) {
+                    errors.push('Valid period date is required');
+                }
+                
+                if (errors.length > 0) {
+                    showToast('Validation Error', errors.join('<br>'), 'danger');
+                    return;
+                }
+                
+                // Create a sample entry for standalone demo
+                const tinNoDashes = document.getElementById('client_tin').value.replace(/-/g, '');
+                const period = document.getElementById('period').value;
+                
+                const sampleData = [
+                    '230601,EXAMPLE SUPPLIER,123-456-789,123456789012345,2023-06-15,10000.00,0.00,0.00,0.00,0.00,1200.00,0.00',
+                    '230602,ANOTHER VENDOR,987-654-321,987654321098765,2023-06-20,0.00,5000.00,0.00,0.00,0.00,0.00,600.00'
+                ];
+                
+                // Add the new entry
+                const newEntry = `230700,NEW VENDOR INC.,${tinNoDashes},${tinNoDashes}001,${period},0.00,0.00,7500.00,0.00,0.00,0.00,900.00`;
+                
+                window.rows.unshift(newEntry);
+                
+                // Update sums (simplified for demo)
+                window.sums.serv += 7500.00;
+                window.sums.inputtax += 900.00;
+                
+                renderList();
+                saveToLocalStorage();
+                showToast('Success', 'Entry added successfully', 'success');
+                
+            } catch (error) {
+                showToast('Error', 'Failed to submit entry', 'danger');
+                console.error('Submit error:', error);
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
+        }
+        
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const rows = lines.slice(1); // Skip header
+            const sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 };
+            
+            // Simple CSV parsing for demo
+            rows.forEach(row => {
+                const columns = row.split(',');
+                if (columns.length >= 12) {
+                    sums.exempt += parseFloat(columns[5]) || 0;
+                    sums.zero += parseFloat(columns[6]) || 0;
+                    sums.serv += parseFloat(columns[7]) || 0;
+                    sums.cap += parseFloat(columns[8]) || 0;
+                    sums.other += parseFloat(columns[9]) || 0;
+                    sums.inputtax += parseFloat(columns[10]) || 0;
+                }
+            });
+            
+            return { rows, sums };
+        }
+        
+        async function handleFileUpload(ev) {
+            const file = ev.target.files[0];
+            if (!file) return;
+            
+            const hideProgress = showProgress('Uploading CSV...');
+            try {
+                const text = await file.text();
+                const result = parseCSV(text);
+                
+                document.getElementById('csv-input').value = '';
+                
+                if (result.rows.length > 0) {
+                    window.rows = window.rows.concat(result.rows);
+                    window.sums = result.sums;
+                    renderList();
+                    saveToLocalStorage();
+                    showToast('Upload Success', `${result.rows.length} rows processed`, 'success');
+                } else {
+                    showToast('Upload Failed', 'No valid data found in CSV', 'danger');
+                }
+            } catch (error) {
+                showToast('Upload Error', 'Failed to process CSV', 'danger');
+                console.error('Upload error:', error);
+            } finally {
+                hideProgress();
+            }
+        }
+        
+        async function handleSaveDAT() {
+            if (window.rows.length === 0) {
+                showToast('No Data', 'No data to save', 'warning');
+                return;
+            }
+            
+            const hideProgress = showProgress('Generating DAT file...');
+            try {
+                const el = document.getElementById('user-list');
+                window.rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+                
+                // Create DAT file content
+                const tinNoDashes = document.getElementById('client_tin').value.replace(/-/g, '') || '000000000';
+                const period = document.getElementById('period').value || '01/01/2023';
+                
+                let datContent = `HEADER,${tinNoDashes},${period.replace(/\//g, '')}\n`;
+                datContent += window.rows.join('\n');
+                datContent += '\nTRAILER,' + window.rows.length;
+                
+                const blob = new Blob([datContent], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vat_relief_${tinNoDashes}_${Date.now()}.dat`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                
+                showToast('Download Started', 'DAT file is being downloaded', 'success');
+            } catch (error) {
+                showToast('Error', 'Failed to save file', 'danger');
+                console.error('Save error:', error);
+            } finally {
+                hideProgress();
+            }
+        }
+        
+        async function handleConvertExcel() {
+            if (window.rows.length === 0) {
+                showToast('No Data', 'No data to convert', 'warning');
+                return;
+            }
+            
+            const hideProgress = showProgress('Generating Excel file...');
+            try {
+                const el = document.getElementById('user-list');
+                window.rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+                
+                // Create CSV content (simulating Excel for demo)
+                const header = "SI,Supplier Name,Supplier TIN,ATC,Date,Exempt,Zero Rated,Services,Capital Goods,Other Goods,Input Tax,VAT on Capital Goods\n";
+                const csvContent = header + window.rows.join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vat_relief_report_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                
+                showToast('Download Started', 'Excel/CSV file is being downloaded', 'success');
+            } catch (error) {
+                showToast('Error', 'Failed to convert to Excel', 'danger');
+                console.error('Convert error:', error);
+            } finally {
+                hideProgress();
+            }
+        }
+        
+        function handleExportJSON() {
+            if (window.rows.length === 0) {
+                showToast('No Data', 'No data to export', 'warning');
+                return;
+            }
+            
+            const data = {
+                metadata: {
+                    client_tin: document.getElementById('client_tin').value,
+                    period: document.getElementById('period').value,
+                    generated: new Date().toISOString(),
+                    type: 'vat_relief_purchases'
+                },
+                rows: window.rows,
+                sums: window.sums,
+                totals: {
+                    exempt: window.sums.exempt,
+                    zero: window.sums.zero,
+                    services: window.sums.serv,
+                    capital_goods: window.sums.cap,
+                    other_goods: window.sums.other,
+                    input_tax: window.sums.inputtax
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vat_relief_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast('Export Complete', 'JSON file downloaded', 'success');
+        }
+        
+        function setupEventListeners() {
+            // Auto-fetch client on TIN blur
+            const tinInput = document.getElementById('client_tin');
+            tinInput.addEventListener('blur', async () => {
+                const val = tinInput.value.trim();
+                if (val && validateTIN(val)) {
+                    await fetchAndFillClient(val);
+                }
+            });
+            
+            // Format TIN as XXX-XXX-XXX
+            tinInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 9) value = value.substring(0, 9);
+                
+                if (value.length > 6) {
+                    value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6);
+                } else if (value.length > 3) {
+                    value = value.substring(0, 3) + '-' + value.substring(3);
+                }
+                
+                e.target.value = value;
+            });
+            
+            // Format date as MM/DD/YYYY
+            const dateInput = document.getElementById('period');
+            dateInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 8) value = value.substring(0, 8);
+                
+                if (value.length > 4) {
+                    value = value.substring(0, 2) + '/' + value.substring(2, 4) + '/' + value.substring(4);
+                } else if (value.length > 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2);
+                }
+                
+                e.target.value = value;
+            });
+            
+            // Submit button
+            document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+            
+            // Upload CSV
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                document.getElementById('csv-input').click();
+            });
+            
+            document.getElementById('csv-input').addEventListener('change', handleFileUpload);
+            
+            // Clear button
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if (window.rows.length > 0) {
+                    showModal('Clear Data', 'Are you sure you want to clear all data?', [
+                        { text: 'Cancel', type: 'secondary', action: 'cancel' },
+                        { text: 'Clear All', type: 'danger', action: 'clear' }
+                    ]).then(action => {
+                        if (action === 'clear') {
+                            window.rows = [];
+                            resetSums();
+                            renderList();
+                            localStorage.removeItem('vat_relief_draft');
+                            showToast('Cleared', 'All data cleared', 'success');
+                        }
+                    });
+                }
+            });
+            
+            // Save .DAT
+            document.getElementById('save-dat').addEventListener('click', handleSaveDAT);
+            
+            // Convert to Excel
+            document.getElementById('convert-xlsx').addEventListener('click', handleConvertExcel);
+            
+            // Export JSON
+            document.getElementById('export-json').addEventListener('click', handleExportJSON);
+            
+            // Menu and Logout buttons
+            document.getElementById('menu-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast('Menu', 'Menu functionality would open navigation', 'info');
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal('Logout', 'Are you sure you want to logout?', [
+                    { text: 'Cancel', type: 'secondary', action: 'cancel' },
+                    { text: 'Logout', type: 'danger', action: 'logout' }
+                ]).then(action => {
+                    if (action === 'logout') {
+                        showToast('Logged Out', 'You have been logged out', 'success');
+                        // In a real app, you would redirect to login page
+                    }
+                });
+            });
+            
+            // Auto-save on changes
+            const preview = document.getElementById('user-list');
+            preview.addEventListener('input', () => {
+                saveToLocalStorage();
+            });
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            setupEventListeners();
+            setupSearch();
+            
+            // Add some sample data for demo
+            if (window.rows.length === 0) {
+                window.rows = [
+                    '230601,EXAMPLE SUPPLIER,123-456-789,123456789012345,2023-06-15,10000.00,0.00,0.00,0.00,0.00,1200.00,0.00',
+                    '230602,ANOTHER VENDOR,987-654-321,987654321098765,2023-06-20,0.00,5000.00,0.00,0.00,0.00,0.00,600.00',
+                    '230603,SERVICES CORP,456-123-789,456123789012345,2023-06-25,0.00,0.00,15000.00,0.00,0.00,1800.00,0.00'
+                ];
+                window.sums = { exempt: 10000, zero: 5000, serv: 15000, cap: 0, other: 0, inputtax: 3600 };
+                renderList();
+            }
+        });
+    </script>
+</body>
+</html>
