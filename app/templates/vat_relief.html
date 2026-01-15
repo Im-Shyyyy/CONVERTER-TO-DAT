@@ -1,8 +1,9 @@
+vat_relief_80percent.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8"> <!-- Changed from 1.0 to 0.8 -->
     <title>VAT Relief - CSV → DAT Converter</title>
     
     <!-- Bootstrap 5 CSS -->
@@ -26,6 +27,9 @@
             --danger: #ef4444;
             --warning: #f59e0b;
             --info: #06b6d4;
+            
+            /* Scale factor - 80% */
+            --scale-factor: 0.8;
         }
         
         body {
@@ -35,6 +39,7 @@
             min-height: 100vh;
             margin: 0;
             padding: 0;
+            font-size: calc(1rem * var(--scale-factor)); /* Base font size scaled */
         }
         
         .app-container {
@@ -43,13 +48,13 @@
             overflow-x: hidden;
         }
         
-        /* Sidebar Styles */
+        /* Sidebar Styles - Scaled to 80% */
         .sidebar {
             background-color: var(--bg-dark);
-            width: 320px;
-            min-width: 320px;
+            width: calc(320px * var(--scale-factor));
+            min-width: calc(320px * var(--scale-factor));
             border-right: 1px solid var(--border-color);
-            padding: 20px;
+            padding: calc(20px * var(--scale-factor));
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -57,17 +62,17 @@
         
         .sidebar h4 {
             color: var(--info);
-            font-size: 1.1rem;
+            font-size: calc(1.1rem * var(--scale-factor));
             font-weight: 600;
-            margin-bottom: 1.5rem;
-            padding-bottom: 10px;
+            margin-bottom: calc(1.5rem * var(--scale-factor));
+            padding-bottom: calc(10px * var(--scale-factor));
             border-bottom: 1px solid var(--border-color);
         }
         
         .small-label {
-            font-size: 0.85rem;
+            font-size: calc(0.85rem * var(--scale-factor));
             color: var(--text-muted);
-            margin-bottom: 5px;
+            margin-bottom: calc(5px * var(--scale-factor));
             display: block;
         }
         
@@ -75,15 +80,15 @@
             background-color: rgba(30, 41, 59, 0.5);
             border: 1px solid var(--border-color);
             color: var(--text-light);
-            font-size: 0.9rem;
-            padding: 8px 12px;
+            font-size: calc(0.9rem * var(--scale-factor));
+            padding: calc(8px * var(--scale-factor)) calc(12px * var(--scale-factor));
         }
         
         .form-control:focus {
             background-color: var(--bg-card);
             border-color: var(--primary);
             color: var(--text-light);
-            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+            box-shadow: 0 0 0 calc(0.25rem * var(--scale-factor)) rgba(59, 130, 246, 0.25);
         }
         
         .form-control::placeholder {
@@ -96,17 +101,17 @@
         
         .sidebar-buttons {
             margin-top: auto;
-            padding-top: 20px;
+            padding-top: calc(20px * var(--scale-factor));
             border-top: 1px solid var(--border-color);
         }
         
         .menu-btn, .logout-btn {
             flex: 1;
             text-align: center;
-            padding: 10px;
-            border-radius: 6px;
+            padding: calc(10px * var(--scale-factor));
+            border-radius: calc(6px * var(--scale-factor));
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: calc(0.9rem * var(--scale-factor));
             transition: all 0.2s;
         }
         
@@ -132,30 +137,31 @@
             color: white;
         }
         
-        /* Main Content Styles */
+        /* Main Content Styles - Scaled to 80% */
         .main-content {
             flex-grow: 1;
-            padding: 20px;
+            padding: calc(20px * var(--scale-factor));
             overflow-y: auto;
         }
         
         .card {
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: calc(8px * var(--scale-factor));
+            padding: calc(20px * var(--scale-factor)) !important; /* Override Bootstrap */
         }
         
         .data-preview-container {
             background-color: rgba(15, 23, 42, 0.5);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
+            border-radius: calc(6px * var(--scale-factor));
+            padding: calc(15px * var(--scale-factor));
             overflow-y: auto;
             font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: calc(0.85rem * var(--scale-factor));
             line-height: 1.4;
-            min-height: 300px;
-            max-height: 400px;
+            min-height: calc(300px * var(--scale-factor));
+            max-height: calc(400px * var(--scale-factor));
         }
         
         .data-preview-container:focus {
@@ -164,54 +170,55 @@
         
         .search-highlight {
             background-color: rgba(251, 191, 36, 0.3);
-            padding: 1px 3px;
-            border-radius: 2px;
+            padding: calc(1px * var(--scale-factor)) calc(3px * var(--scale-factor));
+            border-radius: calc(2px * var(--scale-factor));
         }
         
-        /* Sum Box Styles */
+        /* Sum Box Styles - Scaled to 80% */
         .sum-box {
             background-color: var(--bg-dark);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
+            border-radius: calc(8px * var(--scale-factor));
+            padding: calc(15px * var(--scale-factor));
         }
         
         .sum-box.compact {
-            padding: 12px;
+            padding: calc(12px * var(--scale-factor));
         }
         
         .sum-box h6 {
-            font-size: 0.95rem;
-            margin-bottom: 12px;
+            font-size: calc(0.95rem * var(--scale-factor));
+            margin-bottom: calc(12px * var(--scale-factor));
         }
         
         .sum-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 12px;
+            padding: calc(8px * var(--scale-factor)) calc(12px * var(--scale-factor));
             background-color: rgba(30, 41, 59, 0.5);
-            border-radius: 4px;
-            margin-bottom: 4px;
+            border-radius: calc(4px * var(--scale-factor));
+            margin-bottom: calc(4px * var(--scale-factor));
         }
         
         .summary-label {
-            font-size: 0.85rem;
+            font-size: calc(0.85rem * var(--scale-factor));
             color: var(--text-muted);
         }
         
         .summary-value {
-            font-size: 0.9rem;
+            font-size: calc(0.9rem * var(--scale-factor));
             font-weight: 600;
             color: var(--text-light);
         }
         
-        /* Button Styles */
+        /* Button Styles - Scaled to 80% */
         .btn {
             font-weight: 500;
-            padding: 10px 16px;
+            padding: calc(10px * var(--scale-factor)) calc(16px * var(--scale-factor));
             transition: all 0.2s;
             border: none;
+            font-size: calc(1rem * var(--scale-factor)); /* Button font size */
         }
         
         .btn-primary {
@@ -256,29 +263,31 @@
             border-color: var(--info);
         }
         
-        /* Toast Styles */
+        /* Toast Styles - Scaled to 80% */
         .toast-container {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: calc(20px * var(--scale-factor));
+            right: calc(20px * var(--scale-factor));
             z-index: 1055;
-            max-width: 350px;
+            max-width: calc(350px * var(--scale-factor));
         }
         
         .toast {
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: calc(6px * var(--scale-factor));
+            box-shadow: 0 calc(4px * var(--scale-factor)) calc(12px * var(--scale-factor)) rgba(0, 0, 0, 0.3);
+            font-size: calc(1rem * var(--scale-factor));
         }
         
         .toast-header {
             background-color: var(--bg-dark);
             border-bottom: 1px solid var(--border-color);
             color: var(--text-light);
+            font-size: calc(1rem * var(--scale-factor));
         }
         
-        /* Modal Styles */
+        /* Modal Styles - Scaled to 80% */
         .modal-content {
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -293,7 +302,7 @@
             border-top: 1px solid var(--border-color);
         }
         
-        /* Progress Overlay */
+        /* Progress Overlay - Scaled to 80% */
         .progress-overlay {
             position: fixed;
             top: 0;
@@ -310,20 +319,32 @@
         .progress-content {
             background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 30px;
+            border-radius: calc(8px * var(--scale-factor));
+            padding: calc(30px * var(--scale-factor));
             text-align: center;
-            max-width: 400px;
+            max-width: calc(400px * var(--scale-factor));
             width: 90%;
+            font-size: calc(1rem * var(--scale-factor));
         }
         
         .spinner-border {
-            width: 3rem;
-            height: 3rem;
-            margin-bottom: 15px;
+            width: calc(3rem * var(--scale-factor));
+            height: calc(3rem * var(--scale-factor));
+            margin-bottom: calc(15px * var(--scale-factor));
         }
         
-        /* Responsive */
+        /* Headings - Scaled to 80% */
+        h6 {
+            font-size: calc(1rem * var(--scale-factor));
+        }
+        
+        /* Input group - Scaled to 80% */
+        .input-group-text {
+            font-size: calc(1rem * var(--scale-factor));
+            padding: calc(8px * var(--scale-factor)) calc(12px * var(--scale-factor));
+        }
+        
+        /* Responsive - Adjusted for 80% scale */
         @media (max-width: 992px) {
             .app-container {
                 flex-direction: column;
@@ -339,17 +360,52 @@
         
         @media (max-width: 576px) {
             .sidebar {
-                padding: 15px;
+                padding: calc(15px * var(--scale-factor));
             }
             
             .main-content {
-                padding: 15px;
+                padding: calc(15px * var(--scale-factor));
             }
             
             .d-flex.flex-wrap > .btn {
                 min-width: 100%;
-                margin-bottom: 8px;
+                margin-bottom: calc(8px * var(--scale-factor));
             }
+            
+            /* Scale down container max-width */
+            .input-group {
+                max-width: calc(300px * var(--scale-factor)) !important;
+            }
+        }
+        
+        /* Additional scaled elements */
+        .mb-1 { margin-bottom: calc(0.25rem * var(--scale-factor)) !important; }
+        .mb-2 { margin-bottom: calc(0.5rem * var(--scale-factor)) !important; }
+        .mb-3 { margin-bottom: calc(1rem * var(--scale-factor)) !important; }
+        .mt-2 { margin-top: calc(0.5rem * var(--scale-factor)) !important; }
+        .mt-3 { margin-top: calc(1rem * var(--scale-factor)) !important; }
+        .me-2 { margin-right: calc(0.5rem * var(--scale-factor)) !important; }
+        .ms-2 { margin-left: calc(0.5rem * var(--scale-factor)) !important; }
+        .py-4 { padding-top: calc(1.5rem * var(--scale-factor)) !important; padding-bottom: calc(1.5rem * var(--scale-factor)) !important; }
+        .gap-1 { gap: calc(0.25rem * var(--scale-factor)) !important; }
+        .gap-2 { gap: calc(0.5rem * var(--scale-factor)) !important; }
+        .row-cols-2 > * { padding-right: calc(0.5rem * var(--scale-factor)) !important; padding-left: calc(0.5rem * var(--scale-factor)) !important; }
+        
+        /* Spacing utilities */
+        .d-grid.gap-2 { gap: calc(0.5rem * var(--scale-factor)) !important; }
+        
+        /* Bootstrap modal adjustments */
+        .modal-dialog {
+            margin: calc(1.75rem * var(--scale-factor)) auto;
+        }
+        
+        .modal-title {
+            font-size: calc(1.25rem * var(--scale-factor));
+        }
+        
+        /* Adjust icon sizes */
+        .fa, .fas, .far, .fal, .fab {
+            font-size: calc(1em * var(--scale-factor));
         }
     </style>
 </head>
