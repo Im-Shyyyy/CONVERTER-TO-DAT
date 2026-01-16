@@ -131,8 +131,25 @@
           const el = document.getElementById('user-list');
           el.innerHTML = rows.map(r => r + '<br>').join('');
           el.contentEditable = true;
-          for (const k in sums)
-            document.getElementById(k).textContent = sums[k].toFixed(2);
+          
+          // Format sums with commas for display
+          for (const k in sums) {
+            const formattedValue = formatNumberWithCommas(sums[k].toFixed(2));
+            document.getElementById(k).textContent = formattedValue;
+          }
+        }
+
+        // Helper function to format numbers with commas
+        function formatNumberWithCommas(numStr) {
+          // Split into integer and decimal parts
+          const parts = numStr.split('.');
+          let integerPart = parts[0];
+          const decimalPart = parts.length > 1 ? '.' + parts[1] : '.00';
+          
+          // Add commas to integer part
+          integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          
+          return integerPart + decimalPart;
         }
 
         function resetSums() { sums = { exempt: 0, zero: 0, serv: 0, cap: 0, other: 0, inputtax: 0 }; }

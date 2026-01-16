@@ -136,10 +136,29 @@
                 const el = document.getElementById('user-list');
                 el.innerHTML = rows.map(r => r + '<br>').join('');
                 el.contentEditable = true;
+
                 for (const k in sums) {
                     const target = document.getElementById(k);
-                    if (target) target.textContent = sums[k].toFixed(2);
+                    if (target) {
+                        const formattedValue = formatNumberWithCommas(sums[k].toFixed(2));
+                        target.textContent = formattedValue;
+                    }
+                }    
+            }
+
+            function formatNumberWithCommas(numStr) {
+                const parts = numStr.split('.');
+                let integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? '.' + parts[1] : '.00';
+
+                const isNegative = integerPart.startsWith('-');
+                if (isNegative) {
+                    integerPart = integerPart.substring(1);
                 }
+
+                integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+                return (isNegative ? '-' : '') + integerPart + decimalPart;
             }
 
             function resetSums() {
