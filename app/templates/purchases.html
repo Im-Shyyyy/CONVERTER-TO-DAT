@@ -71,16 +71,34 @@
     </div>
 
     <script>
-      // ... (JavaScript code remains exactly the same as in your original file)
       document.addEventListener("DOMContentLoaded", () => {
         const tinInput = document.getElementById('client_tin');
+        
+        // Helper function to clear all client info fields
+        function clearClientInfoFields() {
+          document.getElementById('corporate_name').value = '';
+          document.getElementById('last_name').value = '';
+          document.getElementById('first_name').value = '';
+          document.getElementById('middle_name').value = '';
+          document.getElementById('trade_name').value = '';
+          document.getElementById('address1').value = '';
+          document.getElementById('address2').value = '';
+          document.getElementById('rdo').value = '';
+        }
 
         async function fetchAndFillClient(tin) {
-          if (!tin) return;
+          if (!tin) {
+            clearClientInfoFields();
+            return;
+          }
           const tinNorm = tin.replace(/-/g, '');
           try {
             const res = await fetch(`/get_client/${tinNorm}`);
-            if (!res.ok) return;
+            if (!res.ok) {
+              // If client not found, clear fields to avoid showing old data
+              clearClientInfoFields();
+              return;
+            }
             const data = await res.json();
             if (data.found) {
               document.getElementById('corporate_name').value = data.corporate_name || '';
@@ -92,13 +110,19 @@
               document.getElementById('address2').value = data.address2 || '';
               document.getElementById('rdo').value = data.rdo || '';
               document.getElementById('period').focus();
+            } else {
+              // Client not found in database, clear fields
+              clearClientInfoFields();
             }
-          } catch (e) { console.log('Client fetch error', e); }
+          } catch (e) { 
+            console.log('Client fetch error', e);
+            clearClientInfoFields();
+          }
         }
 
         tinInput.addEventListener('blur', () => {
           const val = tinInput.value.trim();
-          if (val) fetchAndFillClient(val);
+          fetchAndFillClient(val);
         });
 
         tinInput.addEventListener('input', () => {
@@ -110,6 +134,11 @@
           else if (value.length > 6)
             formatted = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6);
           tinInput.value = formatted;
+          
+          // Clear other fields when TIN is completely empty (no digits)
+          if (value.length === 0) {
+            clearClientInfoFields();
+          }
         });
 
         const periodInput = document.getElementById('period');
@@ -209,7 +238,11 @@
           } else alert(data.error || 'Upload failed');
         });
 
-        document.getElementById('clear-btn').addEventListener('click', () => { rows = []; resetSums(); renderList(); });
+        document.getElementById('clear-btn').addEventListener('click', () => { 
+          rows = []; 
+          resetSums(); 
+          renderList(); 
+        });
 
         document.getElementById('save-dat').addEventListener('click', async () => {
           if (rows.length === 0) return alert('No data to save');
