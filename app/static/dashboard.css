@@ -79,11 +79,6 @@ body.fade-out {
     cursor: pointer;
 }
 
-.choice-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
-}
-
 /* Submenu styles */
 .submenu {
     display: flex;
