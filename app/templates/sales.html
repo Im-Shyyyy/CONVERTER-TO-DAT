@@ -4,204 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>CSV → DAT Converter</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/sales.css" />
 
-    <style>
-      :root {
-        --bg-top: #0d0d0d;
-        --bg-bottom: #8b0000;
-        --card-bg: rgba(22, 27, 34, 0.6);
-        --text-light: #e6edf3;
-        --accent: #ff4c4c;
-        --accent-light: #ff6b6b;
-        --border-glow: rgba(255, 76, 76, 0.4);
-      }
-
-      body {
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.7s ease, transform 0.7s ease;
-        background: linear-gradient(to top, var(--bg-bottom), var(--bg-top));
-        color: var(--text-light);
-        font-family: "JetBrains Mono", monospace;
-        min-height: 100vh;
-        display: flex;
-        align-items: stretch;
-        justify-content: center;
-        margin: 0;
-        overflow-x: hidden;
-      }
-
-      body.fade-in {
-        opacity: 1;
-        transform: translateY(0);
-      }
-
-      body.fade-out {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-
-      .sidebar {
-        backdrop-filter: blur(8px);
-        background: rgba(15, 15, 15, 0.25);
-        border-right: 1px solid var(--border-glow);
-        box-shadow: 4px 0 15px rgba(255, 76, 76, 0.1);
-        padding: 2rem 1.5rem;
-        width: 350px;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .sidebar .spacer {
-        flex-grow: 1;
-      }
-
-      .sidebar-buttons {
-        display: flex;
-        gap: 0.5rem;
-      }
-
-      .sidebar-buttons a{
-        flex: 1;
-      }
-
-      .sidebar h4 {
-        font-weight: 600;
-        margin-bottom: 1rem;
-      }
-
-      .menu-btn,
-      .logout-btn {
-        flex: 1;
-        text-align: center;
-        padding: 8px 0;
-        border-radius: 6px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        transition: 0.2s;
-      }
-
-      /* Menu button style */
-      .menu-btn {
-        background: var(--accent-light);
-        color: #0d0d0d;
-      }
-      .menu-btn:hover {
-        filter: brightness(1.15);
-      }
-
-      /* Logout button style */
-      .logout-btn {
-        background: var(--danger);
-        color: white;
-      }
-      .logout-btn:hover {
-        opacity: 0.85;
-      }
-
-      .main-content {
-        flex: 1;
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .card {
-        background: var(--card-bg);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-      }
-
-      label.small-label {
-        font-size: 0.75rem;
-        color: var(--accent-light);
-        text-transform: uppercase;
-        font-weight: 500;
-        margin-top: 0.5rem;
-      }
-
-      .form-control,
-      .btn {
-        border-radius: 8px;
-        font-size: 0.9rem;
-      }
-
-      .btn-primary {
-        background: linear-gradient(90deg, var(--accent), var(--accent-light));
-        border: none;
-        transition: all 0.3s ease;
-      }
-
-      .btn-primary:hover {
-        filter: brightness(1.15);
-        box-shadow: 0 0 10px var(--accent-light);
-      }
-
-      #user-list {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #fff;
-        white-space: pre-wrap;
-        font-family: "JetBrains Mono", monospace;
-        font-size: 12px;
-        border-radius: 8px;
-        height: 450px;
-        padding: 10px;
-        overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .sum-box {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 10px;
-        margin-top: 1rem;
-      }
-
-      .summary-label {
-        color: #9da9bb; /* subtle bluish-gray tone */
-        font-weight: 500;
-        font-size: 0.85rem;
-        letter-spacing: 0.3px;
-        text-shadow: 0 0 1px rgba(0,0,0,0.5);
-      }
-
-      .summary-value {
-        color: #ffffff; /* keep numeric contrast */
-        font-weight: 600;
-        font-family: "JetBrains Mono", monospace;
-      }
-
-      .sum-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 6px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        transition: background-color 0.2s ease;
-      }
-
-      .sum-item:hover {
-        background-color: rgba(255,255,255,0.05);
-      }
-
-      .sum-item:last-child {
-        border-bottom: none;
-      }
-
-      .text-warning {
-        color: var(--accent-light) !important;
-      }
-    </style>
   </head>
 
   <body>
     <div class="sidebar">
-      <h4>Summary List - Sales</h4>
+      <h4 class="sidebar-header">Summary List - <br>Sales</br></h4>
 
       <label class="small-label">Client TIN</label>
       <input id="client_tin" class="form-control mb-2" placeholder="XXX-XXX-XXX" maxlength="11" inputmode="numeric" pattern="[0-9\-]*" />
@@ -219,12 +31,12 @@
       <input id="rdo" class="form-control mb-2" placeholder="e.g. 001" />
 
       <label class="small-label">Period Covered (MM/DD/YYYY)</label>
-      <input id="period" class="form-control mb-3" placeholder="mm/dd/yyyy (just type numbers)" />
+      <input id="period" class="form-control mb-3" placeholder="mm/dd/yyyy" />
 
       <div class="spacer"></div>
 
       <div class="d-grid gap-2 mt-3">
-        <button id="submit-btn" class="btn btn-primary">Submit (append)</button>
+        <button id="submit-btn" class="btn btn-primary">Insert</button>
         <button id="upload-btn" class="btn btn-outline-light">Upload CSV</button>
         <input id="csv-input" type="file" accept=".csv" style="display:none" />
         <button id="clear-btn" class="btn btn-danger">Clear List</button>

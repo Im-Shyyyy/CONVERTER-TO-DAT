@@ -1,0 +1,238 @@
+/* ===== VARIABLES ===== */
+:root {
+  --bg-top: #0d0d0d;
+  --bg-bottom: #8b0000;
+  --card-bg: rgba(22, 27, 34, 0.6);
+  --text-light: #e6edf3;
+  --accent: #ff4c4c;
+  --accent-light: #ff6b6b;
+  --border-glow: rgba(255, 76, 76, 0.4);
+}
+
+/* ===== BASE STYLES ===== */
+body {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  background: linear-gradient(to top, var(--bg-bottom), var(--bg-top));
+  color: var(--text-light);
+  font-family: "JetBrains Mono", monospace;
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+body.fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.fade-out {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* ===== LAYOUT ===== */
+.sidebar {
+  backdrop-filter: blur(8px);
+  background: rgba(15, 15, 15, 0.25);
+  border-right: 1px solid var(--border-glow);
+  box-shadow: 4px 0 15px rgba(255, 76, 76, 0.1);
+  padding: 2rem 1.5rem;
+  width: 275px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== SIDEBAR COMPONENTS ===== */
+.sidebar .spacer {
+  flex-grow: 1;
+}
+
+.sidebar h4 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.sidebar-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sidebar-buttons a {
+  flex: 1;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 10px var(--accent-light);
+}
+
+/* Menu & Logout buttons */
+.menu-btn,
+.logout-btn {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: 0.2s;
+}
+
+.menu-btn {
+  background: var(--accent-light);
+  color: #0d0d0d;
+}
+
+.menu-btn:hover {
+  filter: brightness(1.15);
+}
+
+.logout-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.logout-btn:hover {
+  opacity: 0.85;
+}
+
+/* ===== FORM CONTROLS ===== */
+.form-control {
+  height: 30px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
+label.small-label {
+  font-size: 0.75rem;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== DATA PREVIEW ===== */
+#user-list {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  white-space: pre-wrap;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  border-radius: 8px;
+  height: 450px;
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ===== SUMMARY BOX ===== */
+.sum-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 1rem;
+}
+
+.sum-box.compact h6.text-info {
+  margin-bottom: 0.5rem;
+}
+
+#sums.row {
+  margin: 0;
+}
+
+/* Summary items */
+.sum-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+.sum-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sum-item:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  color: #9da9bb;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.summary-value {
+  color: #ffffff;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-warning {
+  color: var(--accent-light) !important;
+}
+
+/* ===== LAYOUT HELPERS ===== */
+.w-30 {
+  width: 30% !important;
+}
+
+.w-50 {
+  width: 50% !important;
+}
+
+.d-grid.gap-2 {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.d-flex.gap-2 {
+  display: flex;
+  gap: 0.5rem;
+}

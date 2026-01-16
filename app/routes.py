@@ -76,12 +76,11 @@ def dashboard():
     username = session.get('username', 'User')
     return render_template('dashboard.html', username=username)
 
-@main.route('/vat-relief')
-def vat_relief():
+@main.route('/purchases')
+def purchases():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    return render_template('vat_relief.html')
-
+    return render_template('purchases.html')
 @main.route('/sales')
 def sales():
     if 'username' not in session:
