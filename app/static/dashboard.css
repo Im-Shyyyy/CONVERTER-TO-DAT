@@ -1,0 +1,157 @@
+/* dashboard.css - Consolidated styles for dashboard.html */
+
+/* Base body styles */
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at top, #1a0b0b 0%, #000 100%);
+    font-family: "Inter", system-ui, sans-serif;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+/* Fade transitions */
+body.fade-in {
+    opacity: 1;
+}
+
+body.fade-out {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* Dashboard container */
+.dashboard-container {
+    background: linear-gradient(to top, #000 30%, #1a0b0b 70%, #220000 100%);
+    border-radius: 32px;
+    box-shadow: 0 0 35px rgba(200, 0, 0, 0.25);
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Header section */
+.dashboard-header h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-header small {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+/* Choices section */
+.choices {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+    width: 100%;
+}
+
+.dropdown-container {
+    width: 100%;
+}
+
+/* Main button styles */
+.choice-btn {
+    width: 100%;
+    background: linear-gradient(to right, #b80000, #ff3030);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.choice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+}
+
+/* Submenu styles */
+.submenu {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-top: 1.2rem;
+    padding-left: 0.8rem;
+    width: 100%;
+    animation: fadeIn 0.25s ease;
+}
+
+.sub-btn {
+    background: linear-gradient(to right, #ff5050, #ff8080);
+    font-size: 0.95rem;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    margin: 0 0.2rem;
+    transition: all 0.25s ease;
+}
+
+.sub-btn:hover {
+    background: linear-gradient(to right, #ff6666, #ff9999);
+    transform: translateY(-2px);
+}
+
+/* Logout section */
+.logout {
+    margin-top: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.logout a {
+    color: #ff4d4d;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.logout a:hover {
+    text-decoration: underline;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-5px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .dashboard-container {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+        border-radius: 24px;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.7rem;
+    }
+    
+    .choice-btn {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+    }
+}

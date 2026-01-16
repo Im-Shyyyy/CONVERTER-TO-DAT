@@ -650,6 +650,9 @@ def convert_xlsx():
         return jsonify({'error': 'No rows provided'}), 400
 
     processed = []
+    # Initialize totals for columns F through N (indices 5 to 13 in processed rows)
+    column_totals = [0.0] * 9  # F through N = 9 columns
+    
     for idx, line in enumerate(rows):
         if idx == 0:
             continue
@@ -661,21 +664,48 @@ def convert_xlsx():
         except Exception:
             numeric_values = [0.0] * 6
 
+        # Calculate column values
+        gross_purchase = sum(numeric_values[:5])  # Column F (6)
+        exempt_purchase = numeric_values[0]        # Column G (7)
+        zero_rated_purchase = numeric_values[1]    # Column H (8)
+        taxable_purchase = sum(numeric_values[2:5]) # Column I (9)
+        services_purchase = numeric_values[2]      # Column J (10)
+        capital_goods = numeric_values[3]          # Column K (11)
+        other_goods = numeric_values[4]            # Column L (12)
+        input_tax = numeric_values[5]              # Column M (13)
+        gross_taxable_purchase = sum(numeric_values[2:6]) # Column N (14)
+        
+        # Add to column totals (F through N)
+        column_values = [
+            gross_purchase,
+            exempt_purchase,
+            zero_rated_purchase,
+            taxable_purchase,
+            services_purchase,
+            capital_goods,
+            other_goods,
+            input_tax,
+            gross_taxable_purchase
+        ]
+        
+        for i in range(9):
+            column_totals[i] += column_values[i]
+
         formatted_row = [
             cols[16] if len(cols) > 16 else '',
             format_taxpayer_id(cols[2]) if len(cols) > 2 else '',
             cols[3] if len(cols) > 3 else '',
             f"{cols[4]}, {cols[5]} {cols[6]}",
             f"{cols[7]} {cols[8]}",
-            sum(numeric_values[:5]),
-            numeric_values[0],
-            numeric_values[1],
-            sum(numeric_values[2:5]),
-            numeric_values[2],
-            numeric_values[3],
-            numeric_values[4],
-            numeric_values[5],
-            sum(numeric_values[2:6])
+            gross_purchase,
+            exempt_purchase,
+            zero_rated_purchase,
+            taxable_purchase,
+            services_purchase,
+            capital_goods,
+            other_goods,
+            input_tax,
+            gross_taxable_purchase
         ]
         processed.append(formatted_row)
 
@@ -685,6 +715,7 @@ def convert_xlsx():
     wb = openpyxl.Workbook()
     ws = wb.active
 
+    # Header cells
     header_cells = {
         "A1": "PURCHASE TRANSACTION",
         "A2": "RECONCILIATION OF LISTING FOR ENFORCEMENT",
@@ -739,12 +770,16 @@ def convert_xlsx():
         ws[cell] = value
         ws[cell].font = Font(bold=True, size=10)
 
-    col_widths = {"A": 25, "B": 25, "C": 50, "D": 50, "E": 50,
-                  "F": 25, "G": 25, "H": 25, "I": 25,
-                  "J": 25, "K": 25, "L": 25, "M": 25, "N": 25}
+    # Column widths
+    col_widths = {
+        "A": 25, "B": 25, "C": 50, "D": 50, "E": 50,
+        "F": 25, "G": 25, "H": 25, "I": 25,
+        "J": 25, "K": 25, "L": 25, "M": 25, "N": 25
+    }
     for c, w in col_widths.items():
         ws.column_dimensions[c].width = w
 
+    # Create accounting style
     accounting_style = NamedStyle(name="accounting_style",
                                   number_format='#,##0.00_);[Red](#,##0.00)')
     try:
@@ -754,32 +789,42 @@ def convert_xlsx():
 
     normal_font = Font(size=10)
     right_align = Alignment(horizontal='right')
+    bold_font = Font(bold=True, size=10)
 
+    # Write data rows
     start_row = 15
     for r_idx, row in enumerate(processed, start=start_row):
         for c_idx, val in enumerate(row, start=1):
             cell = ws.cell(row=r_idx, column=c_idx, value=val)
             cell.font = normal_font
-            if c_idx == 1:
+            if c_idx == 1:  # Column A (taxable month)
                 cell.alignment = right_align
-            if c_idx >= 6:
+            if c_idx >= 6:  # Columns F through N (numeric columns)
                 cell.number_format = '#,##0.00'
 
     last_data_row = start_row + len(processed) - 1
+    
+    # Add Grand Total row
     grand_total_row = last_data_row + 2
+    
+    # Write "Grand Total:" label in column A
+    ws.cell(row=grand_total_row, column=1, value="Grand Total :")
+    ws.cell(row=grand_total_row, column=1).font = bold_font
+    ws.cell(row=grand_total_row, column=1).alignment = Alignment(horizontal='right')
+    
+    # Write totals for columns F through N
+    column_letters = ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']
+    for i, col_letter in enumerate(column_letters):
+        cell = ws.cell(row=grand_total_row, column=6 + i, value=column_totals[i])
+        cell.number_format = '#,##0.00'
+        cell.font = bold_font
+    
+    # Add "END OF REPORT"
     end_of_report_row = grand_total_row + 2
+    ws.cell(row=end_of_report_row, column=1, value="END OF REPORT")
+    ws.cell(row=end_of_report_row, column=1).font = Font(size=10)
 
-    ws[f"A{grand_total_row}"] = "Grand Total :"
-    ws[f"A{grand_total_row}"].font = Font(size=10)
-
-    for col in list('FGHIJKLMN'):
-        ws[f"{col}{grand_total_row}"] = f"=SUM({col}{start_row}:{col}{last_data_row})"
-        ws[f"{col}{grand_total_row}"].number_format = '#,##0.00'
-        ws[f"{col}{grand_total_row}"].font = Font(bold=True, size=10)
-
-    ws[f"A{end_of_report_row}"] = "END OF REPORT"
-    ws[f"A{end_of_report_row}"].font = Font(size=10)
-
+    # Save to bytes
     bio = io.BytesIO()
     wb.save(bio)
     bio.seek(0)
