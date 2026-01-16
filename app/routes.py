@@ -80,7 +80,7 @@ def dashboard():
 def vat_relief():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-    return render_template('index.html')
+    return render_template('vat_relief.html')
 
 @main.route('/sales')
 def sales():
