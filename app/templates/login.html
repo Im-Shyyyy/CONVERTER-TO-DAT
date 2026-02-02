@@ -12,39 +12,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <style>
-      body {margin: 0; height: 100vh; display: flex; justify-content: center;
-        align-items: center; background: radial-gradient(circle at top, #1a0b0b 0%, #000 100%);
-        font-family: "Inter", system-ui, sans-serif;}
-      .login-container {background: linear-gradient(to top, #000 30%, #1a0b0b 70%, #220000 100%);
-        border-radius: 32px; box-shadow: 0 0 35px rgba(200, 0, 0, 0.25);
-        width: 100%; max-width: 360px; padding: 2.3rem 2rem; color: #fff;
-        text-align: center; border: 1px solid rgba(255, 255, 255, 0.05);}
-      .login-header h1 {font-size: 2.2rem; font-weight: 700; margin-bottom: 0.25rem;
-        letter-spacing: 0.5px;}
-      .login-header small {color: rgba(255, 255, 255, 0.75);
-        font-size: 0.85rem;}
-      form {margin-top: 2rem;}
-      .form-control {background-color: #111; border: none; color: #fff;
-        border-radius: 20px; padding: 0.65rem 1rem 0.65rem 2.5rem;
-        font-size: 0.9rem;}
-      .form-control:focus {outline: none; box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.25);}
-      .input-group {position: relative; margin-bottom: 1rem;}
-      .input-group i {position: absolute; top: 50%; left: 0.9rem;
-        transform: translateY(-50%); color: #888; font-size: 0.9rem;}
-      .btn-login {
-        background: linear-gradient(to right, #b80000, #ff3030);
-        color: white; border: none; width: 100%; border-radius: 20px;
-        padding: 0.65rem; font-weight: 600; letter-spacing: 0.5px;
-        transition: all 0.2s ease;}
-      .btn-login:hover {background: linear-gradient(to right, #c90000, #ff4d4d);
-        transform: translateY(-1px); box-shadow: 0 0 12px rgba(255, 0, 0, 0.25);}
-      .login-footer {margin-top: 1.25rem; font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.7);}
-      .login-footer a {color: #ff4d4d; text-decoration: none;
-        font-weight: 500;}
-      .login-footer a:hover {text-decoration: underline;}
-    </style>
+    <link rel="stylesheet" href="/static/login.css" />
   </head>
 
   <body>
@@ -58,12 +26,13 @@
       <div class="alert alert-danger py-2 mt-3 small">{{ error }}</div>
       {% endif %}
 
-      <form method="POST">
+      <form method="POST" id="loginForm">
         <div class="input-group">
           <i class="fa fa-user"></i>
           <input
             type="text"
             name="username"
+            id="username"
             class="form-control"
             placeholder="Username"
             required
@@ -75,6 +44,7 @@
           <input
             type="password"
             name="password"
+            id="password"
             class="form-control"
             placeholder="Password"
             required
@@ -85,8 +55,110 @@
       </form>
 
       <div class="login-footer mt-3">
-        <span>Don’t have an account? <a href="#">Contact Leo</a></span>
+        <span>Don't have an account? <a href="#">Contact Leo</a></span>
       </div>
     </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        
+        // Add focus indicator styling
+        const style = document.createElement('style');
+        style.textContent = `
+          .form-control:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.25);
+          }
+          .form-control.focus-highlight {
+            box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.5) !important;
+            border: 1px solid rgba(255, 0, 0, 0.3) !important;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Set initial focus to username
+        usernameInput.focus();
+        usernameInput.classList.add('focus-highlight');
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+          const activeElement = document.activeElement;
+          const isUsernameFocused = activeElement === usernameInput;
+          const isPasswordFocused = activeElement === passwordInput;
+          
+          // Remove highlight from all inputs
+          usernameInput.classList.remove('focus-highlight');
+          passwordInput.classList.remove('focus-highlight');
+          
+          // Add highlight to currently focused element
+          if (isUsernameFocused) {
+            usernameInput.classList.add('focus-highlight');
+          } else if (isPasswordFocused) {
+            passwordInput.classList.add('focus-highlight');
+          }
+          
+          // Handle arrow key navigation
+          if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            event.preventDefault(); // Prevent scrolling
+            if (isUsernameFocused) {
+              passwordInput.focus();
+              passwordInput.classList.add('focus-highlight');
+            } else if (isPasswordFocused) {
+              // If at password, go to submit button
+              document.querySelector('.btn-login').focus();
+            }
+          }
+          
+          if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+            event.preventDefault(); // Prevent scrolling
+            if (isPasswordFocused) {
+              usernameInput.focus();
+              usernameInput.classList.add('focus-highlight');
+            } else if (document.activeElement.classList.contains('btn-login')) {
+              // If at submit button, go to password
+              passwordInput.focus();
+              passwordInput.classList.add('focus-highlight');
+            }
+          }
+          
+          // Tab key still works normally, but we'll add highlight
+          if (event.key === 'Tab') {
+            // Add slight delay to let the browser focus the next element first
+            setTimeout(() => {
+              const focused = document.activeElement;
+              if (focused === usernameInput || focused === passwordInput) {
+                focused.classList.add('focus-highlight');
+              }
+            }, 10);
+          }
+        });
+        
+        // Also handle focus events for mouse/touch
+        usernameInput.addEventListener('focus', () => {
+          usernameInput.classList.add('focus-highlight');
+          passwordInput.classList.remove('focus-highlight');
+        });
+        
+        passwordInput.addEventListener('focus', () => {
+          passwordInput.classList.add('focus-highlight');
+          usernameInput.classList.remove('focus-highlight');
+        });
+        
+        // Handle blur to remove highlight when clicking outside
+        usernameInput.addEventListener('blur', () => {
+          if (document.activeElement !== passwordInput) {
+            usernameInput.classList.remove('focus-highlight');
+          }
+        });
+        
+        passwordInput.addEventListener('blur', () => {
+          if (document.activeElement !== usernameInput) {
+            passwordInput.classList.remove('focus-highlight');
+          }
+        });
+      });
+    </script>
   </body>
 </html>

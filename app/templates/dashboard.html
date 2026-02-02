@@ -23,42 +23,45 @@
       </div>
 
       <div class="choices">
-        <!-- VAT Relief dropdown button -->
-        <div class="dropdown-container">
-            <button class="choice-btn" id="vatReliefBtn">
+        <!-- VAT Relief Accordion -->
+        <div class="accordion-item">
+          <button class="accordion-header" id="vatAccordion">
             <i class="fa-solid fa-file-invoice-dollar me-2"></i> VAT Relief
-            <i class="fa-solid fa-caret-down ms-2"></i>
-            </button>
-            <div id="vatSubmenu" class="submenu mt-2" style="display: none;">
-            <button class="choice-btn sub-btn" id="salesBtn" style="margin-bottom: 0.3rem;">
-                <i class="fa-solid fa-chart-line me-2"></i> Sales
+            <i class="fa-solid fa-chevron-down ms-2 accordion-icon"></i>
+          </button>
+          <div class="accordion-content">
+            <button class="choice-btn sub-btn" id="salesBtn">
+              <i class="fa-solid fa-chart-line me-2"></i> Sales
             </button>
             <button class="choice-btn sub-btn" id="purchasesBtn">
-                <i class="fa-solid fa-cart-shopping me-2"></i> Purchases
+              <i class="fa-solid fa-cart-shopping me-2"></i> Purchases
             </button>
-            </div>
+          </div>
         </div>
 
-        <button class="choice-btn" onclick="location.href='/sawt'">
+        <!-- SAWT Button -->
+        <button class="choice-btn standalone-btn" id="sawtBtn">
           <i class="fa-solid fa-file-contract me-2"></i> SAWT
         </button>
 
-        <div class="dropdown-container">
-            <button class="choice-btn" id="qapBtn">
+        <!-- QAP Accordion -->
+        <div class="accordion-item">
+          <button class="accordion-header" id="qapAccordion">
             <i class="fa-solid fa-file-invoice-dollar me-2"></i> QAP
-            <i class="fa-solid fa-caret-down ms-2"></i>
-            </button>
-            <div id="qapSubmenu" class="submenu mt-2" style="display: none;">
-            <button class="choice-btn sub-btn" id="quarterlyBtn" style="margin-bottom: 0.3rem;">
-                <i class="fa-solid fa-chart-line me-2"></i> 1601EQ
+            <i class="fa-solid fa-chevron-down ms-2 accordion-icon"></i>
+          </button>
+          <div class="accordion-content">
+            <button class="choice-btn sub-btn" id="quarterlyBtn">
+              <i class="fa-solid fa-chart-line me-2"></i> 1601EQ
             </button>
             <button class="choice-btn sub-btn" id="annualBtn">
-                <i class="fa-solid fa-cart-shopping me-2"></i> 1604E
+              <i class="fa-solid fa-cart-shopping me-2"></i> 1604E
             </button>
-            </div>
+          </div>
         </div>
 
-        <button class="choice-btn" onclick="location.href='/compen'">
+        <!-- 1604C Button -->
+        <button class="choice-btn standalone-btn" id="compenBtn">
           <i class="fa-solid fa-file-contract me-2"></i> 1604C
         </button>
       </div>
@@ -83,61 +86,51 @@
             }, 400); // delay to match fade-out duration
         }
 
-        // Keep track of currently open dropdown
-        let currentOpenDropdown = null;
-
-        // Function to close all dropdowns except the specified one
-        function closeOtherDropdowns(exceptId = null) {
-            const dropdowns = ['vatSubmenu', 'qapSubmenu'];
-            
-            dropdowns.forEach(dropdownId => {
-                if (dropdownId !== exceptId) {
-                    const dropdown = document.getElementById(dropdownId);
-                    if (dropdown) {
-                        dropdown.style.display = 'none';
+        // Accordion functionality
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const accordionItem = header.parentElement;
+                const accordionContent = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
+                
+                // Close all other accordions
+                document.querySelectorAll('.accordion-item').forEach(item => {
+                    if (item !== accordionItem) {
+                        const otherContent = item.querySelector('.accordion-content');
+                        const otherIcon = item.querySelector('.accordion-icon');
+                        if (otherContent) {
+                            otherContent.classList.remove('open');
+                            otherContent.style.maxHeight = null;
+                        }
+                        if (otherIcon) {
+                            otherIcon.style.transform = 'rotate(0deg)';
+                        }
                     }
+                });
+                
+                // Toggle current accordion
+                if (accordionContent.classList.contains('open')) {
+                    accordionContent.classList.remove('open');
+                    accordionContent.style.maxHeight = null;
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    accordionContent.classList.add('open');
+                    accordionContent.style.maxHeight = accordionContent.scrollHeight + 'px';
+                    icon.style.transform = 'rotate(180deg)';
                 }
             });
-        }
-
-        // Toggle VAT Relief submenu
-        document.getElementById("vatReliefBtn").addEventListener("click", () => {
-            const submenu = document.getElementById("vatSubmenu");
-            const isOpening = submenu.style.display === "none";
-            
-            // Close other dropdowns first
-            closeOtherDropdowns(isOpening ? 'vatSubmenu' : null);
-            
-            // Toggle current dropdown
-            submenu.style.display = isOpening ? "block" : "none";
-            
-            // Update tracking
-            currentOpenDropdown = isOpening ? 'vatSubmenu' : null;
         });
 
-        // Toggle QAP submenu
-        document.getElementById("qapBtn").addEventListener("click", () => {
-            const submenu = document.getElementById("qapSubmenu");
-            const isOpening = submenu.style.display === "none";
-            
-            // Close other dropdowns first
-            closeOtherDropdowns(isOpening ? 'qapSubmenu' : null);
-            
-            // Toggle current dropdown
-            submenu.style.display = isOpening ? "block" : "none";
-            
-            // Update tracking
-            currentOpenDropdown = isOpening ? 'qapSubmenu' : null;
-        });
-
-        // Close dropdowns when clicking outside (optional enhancement)
+        // Close accordions when clicking outside
         document.addEventListener('click', (event) => {
-            const isClickInsideDropdown = event.target.closest('.dropdown-container');
-            const isClickOnDropdownButton = event.target.closest('.choice-btn[id$="Btn"]');
-            
-            if (!isClickInsideDropdown && !isClickOnDropdownButton) {
-                closeOtherDropdowns();
-                currentOpenDropdown = null;
+            if (!event.target.closest('.accordion-item')) {
+                document.querySelectorAll('.accordion-content').forEach(content => {
+                    content.classList.remove('open');
+                    content.style.maxHeight = null;
+                });
+                document.querySelectorAll('.accordion-icon').forEach(icon => {
+                    icon.style.transform = 'rotate(0deg)';
+                });
             }
         });
 
@@ -145,6 +138,7 @@
         document.getElementById("purchasesBtn").addEventListener("click", () => {
             smoothRedirect("/purchases");
         });
+        
         document.getElementById("salesBtn").addEventListener("click", () => {
             smoothRedirect("/sales");
         });
@@ -155,6 +149,14 @@
 
         document.getElementById("annualBtn").addEventListener("click", () => {
             smoothRedirect("/qap-annual");
+        });
+
+        document.getElementById("sawtBtn").addEventListener("click", () => {
+            smoothRedirect("/sawt");
+        });
+
+        document.getElementById("compenBtn").addEventListener("click", () => {
+            smoothRedirect("/compen");
         });
     </script>
   </body>
