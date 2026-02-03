@@ -1,4 +1,4 @@
-/* dashboard.css - Consolidated styles for dashboard.html */
+/* dashboard.css - Consolidated styles for dashboard.html with Accordion Design */
 
 /* Base body styles */
 body {
@@ -48,21 +48,22 @@ body.fade-out {
     font-size: 0.9rem;
 }
 
-/* Choices section */
+/* Choices section - FIXED SPACING */
 .choices {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1rem; /* This controls the consistent gap between ALL items */
     margin-top: 2rem;
     width: 100%;
 }
 
-.dropdown-container {
+/* Accordion styles - REMOVED margin-bottom */
+.accordion-item {
     width: 100%;
+    /* Removed margin-bottom - spacing is now controlled by .choices gap */
 }
 
-/* Main button styles */
-.choice-btn {
+.accordion-header {
     width: 100%;
     background: linear-gradient(to right, #b80000, #ff3030);
     color: #fff;
@@ -72,36 +73,92 @@ body.fade-out {
     font-weight: 600;
     font-size: 1rem;
     letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(184, 0, 0, 0.2);
+}
+
+.accordion-header:hover {
+    background: linear-gradient(to right, #c80000, #ff4040);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(184, 0, 0, 0.3);
+}
+
+.accordion-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+}
+
+/* Accordion content */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(184, 0, 0, 0.08);
+    border-radius: 0 0 20px 20px;
+    margin-top: 4px; /* Small margin between header and content */
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 0 0.5rem;
+}
+
+.accordion-content.open {
+    max-height: 200px;
+    padding: 0.5rem 0.5rem 1rem;
+    animation: slideDown 0.3s ease;
+    /* Ensure consistent bottom spacing when opened */
+    margin-bottom: 0;
+}
+
+/* Button styles */
+.choice-btn, .standalone-btn {
+    width: 100%;
+    background: linear-gradient(to right, #b80000, #ff3030);
+    color: #fff;
+    border: none;
+    border-radius: 20px; /* Consistent border-radius */
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
     transition: all 0.25s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    box-shadow: 0 4px 8px rgba(184, 0, 0, 0.15);
 }
 
-/* Submenu styles */
-.submenu {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    margin-top: 1.2rem;
-    padding-left: 0.8rem;
-    width: 100%;
-    animation: fadeIn 0.25s ease;
+.choice-btn:hover, .standalone-btn:hover {
+    background: linear-gradient(to right, #c80000, #ff4040);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(184, 0, 0, 0.25);
 }
 
+.choice-btn:active, .standalone-btn:active {
+    transform: translateY(0);
+}
+
+/* Sub-button styles */
 .sub-btn {
     background: linear-gradient(to right, #ff5050, #ff8080);
     font-size: 0.95rem;
-    padding: 0.9rem 1rem;
-    border-radius: 16px;
-    margin: 0 0.2rem;
-    transition: all 0.25s ease;
+    padding: 0.8rem 1rem;
+    border-radius: 14px;
+    margin: 0;
+    animation: fadeIn 0.3s ease;
 }
 
 .sub-btn:hover {
     background: linear-gradient(to right, #ff6666, #ff9999);
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 80, 80, 0.25);
 }
 
 /* Logout section */
@@ -115,9 +172,11 @@ body.fade-out {
     color: #ff4d4d;
     text-decoration: none;
     font-weight: 500;
+    transition: color 0.2s ease;
 }
 
 .logout a:hover {
+    color: #ff6666;
     text-decoration: underline;
 }
 
@@ -133,6 +192,17 @@ body.fade-out {
     }
 }
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 480px) {
     .dashboard-container {
@@ -145,8 +215,27 @@ body.fade-out {
         font-size: 1.7rem;
     }
     
-    .choice-btn {
+    .choices {
+        gap: 0.9rem; /* Slightly smaller gap on mobile */
+    }
+    
+    .accordion-header,
+    .choice-btn,
+    .standalone-btn {
         padding: 0.7rem 0.9rem;
         font-size: 0.95rem;
+    }
+    
+    .sub-btn {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.9rem;
+    }
+    
+    .accordion-content {
+        padding: 0 0.3rem;
+    }
+    
+    .accordion-content.open {
+        padding: 0.3rem 0.3rem 0.8rem;
     }
 }
