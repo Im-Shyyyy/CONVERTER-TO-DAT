@@ -123,6 +123,37 @@ def upload_csv():
     if not f:
         return jsonify({'error': 'No file uploaded'}), 400
 
+    def clean_text(text):
+        """Clean and normalize text by replacing special characters"""
+        if not text:
+            return text
+            
+        # Convert to uppercase first
+        text = text.upper()
+        
+        # Replace special characters
+        replacements = {
+            '&': 'AND',
+            "'": '',  # remove apostrophe
+            '"': '',  # remove double quote
+            ',': '',  # remove comma
+            'Ñ': 'N',
+            'ñ': 'N',
+            'É': 'E',
+            'é': 'E',
+            'Ê': 'E',
+            'ê': 'E',
+            'È': 'E',
+            'è': 'E',
+            # You can add more replacements here if needed
+        }
+        
+        # Apply replacements
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+            
+        return text.strip()
+
     try:
         content = f.stream.read().decode('ISO-8859-1').splitlines()
         reader = csv.reader(content)
@@ -134,26 +165,62 @@ def upload_csv():
         for row in reader:
             if not row:
                 continue
-            key = row[0].replace('-', '').upper().ljust(9)[:9]
-            if key not in consolidated:
-                consolidated[key] = ['D', 'P', key] + [c.upper() for c in row[1:7]] + [0.0]*6
+            
+            # Clean text columns (2nd to 7th columns) before storing
+            cleaned_row = []
+            for i, cell in enumerate(row):
+                if 1 <= i <= 6:  # Columns 2-7 (indices 1-6) are text columns
+                    cleaned_row.append(clean_text(cell))
+                else:
+                    cleaned_row.append(cell.strip())
+            
+            # Get ALL digits from first column (remove hyphens and keep everything)
+            full_key = cleaned_row[0].replace('-', '').upper()
+            
+            # Get first 9 digits for display purposes
+            display_key = full_key.ljust(9)[:9]
+            
+            if full_key not in consolidated:
+                # Store display key in position 2, but use full_key for consolidation
+                # Also store cleaned row data for sorting
+                consolidated[full_key] = {
+                    'data': ['D', 'P', display_key] + cleaned_row[1:7] + [0.0]*6,
+                    'sort_col3': cleaned_row[2] if len(cleaned_row) > 2 else '',
+                    'sort_col2': cleaned_row[1] if len(cleaned_row) > 1 else '',
+                    'has_col3': 0 if (len(cleaned_row) > 2 and cleaned_row[2]) else 1
+                }
 
+            # Sum numeric values from original row (columns 8-13, indices 7-12)
             for i in range(7, 13):
                 try:
-                    consolidated[key][i+2] += float(row[i])
+                    consolidated[full_key]['data'][i+2] += float(cleaned_row[i])
                 except:
                     pass
 
-        sorted_data = sorted(consolidated.values(), key=lambda x: (x[3], x[4]))
+        # Prepare all rows for sorting (similar to sales logic)
+        all_rows_data = []
+        for key, item in consolidated.items():
+            # Create sorting structure similar to sales
+            all_rows_data.append({
+                'data': item['data'],
+                'sort_col3': item['sort_col3'],
+                'sort_col2': item['sort_col2'],
+                'has_col3': item['has_col3']
+            })
+
+        # Sort: 1st by has_col3 (0 first, 1 last), then by col3, then by col2
+        all_rows_data.sort(key=lambda x: (x['has_col3'], x['sort_col3'], x['sort_col2']))
+        
         rows_out = []
 
-        for vals in sorted_data:
+        for row_data in all_rows_data:
+            vals = row_data['data']
             formatted = []
             for i, v in enumerate(vals):
                 if i < 2:
                     formatted.append(str(v))
                 elif i < 3:
-                    formatted.append(f'"{v}"')
+                    formatted.append(f'"{v}"')  # Display key (first 9 digits)
                 elif 3 <= i <= 8:
                     formatted.append(f'"{v}"' if str(v).strip() else v)
                 elif 9 <= i <= 14:
@@ -188,34 +255,106 @@ def upload_sales():
     if not f:
         return jsonify({'error': 'No file uploaded'}), 400
 
+    def clean_text(text):
+        """Clean and normalize text by replacing special characters"""
+        if not text:
+            return text
+            
+        # Convert to uppercase first
+        text = text.upper()
+        
+        # Replace special characters
+        replacements = {
+            '&': 'AND',
+            "'": '',  # remove apostrophe
+            '"': '',  # remove double quote
+            ',': '',  # remove comma
+            'Ñ': 'N',
+            'ñ': 'N',
+            'É': 'E',
+            'é': 'E',
+            'Ê': 'E',
+            'ê': 'E',
+            'È': 'E',
+            'è': 'E',
+            # You can add more replacements here if needed
+        }
+        
+        # Apply replacements
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+            
+        return text.strip()
+
     try:
         content = f.stream.read().decode('ISO-8859-1').splitlines()
         reader = csv.reader(content)
         header = next(reader, None)
 
-        rows_out = []
+        # Store all rows for sorting
+        all_rows_data = []
         sums = {'exempt': 0, 'zero': 0, 'taxable': 0, 'outputvat': 0}
 
         for row in reader:
             if not row:
                 continue
 
+            # Clean text columns (2nd to 8th columns) before storing for sorting
+            cleaned_row = row.copy()
+            for i in range(1, min(8, len(cleaned_row))):  # Columns 2-8 (indices 1-7)
+                cleaned_row[i] = clean_text(cleaned_row[i])
+            
+            # Store original row data for sorting
+            col2_value = cleaned_row[1] if len(cleaned_row) > 1 else ''
+            col3_value = cleaned_row[2] if len(cleaned_row) > 2 else ''
+            
+            # Create a sorting key that prioritizes rows with 3rd column values
+            has_col3 = 0 if col3_value else 1
+            
+            all_rows_data.append({
+                'original_row': row,  # Keep original for processing
+                'cleaned_row': cleaned_row,  # Cleaned version for sorting
+                'sort_col2': col2_value,
+                'sort_col3': col3_value,
+                'has_col3': has_col3
+            })
+
+        # Sort: 1st by has_col3 (0 first, 1 last), then by col3, then by col2
+        all_rows_data.sort(key=lambda x: (x['has_col3'], x['sort_col3'], x['sort_col2']))
+
+        rows_out = []
+        
+        for row_data in all_rows_data:
+            # Use the cleaned row for output
+            row = row_data['cleaned_row']
             formatted = ['D', 'S']
+            
             for i, v in enumerate(row):
                 v = v.strip()
-                if i <= 7:
+                if i == 0:  # First column - process the special format
+                    # Remove all hyphens and keep only numbers
+                    numbers_only = v.replace('-', '').replace(',', '')
+                    # Keep only first 9 digits (from the left)
+                    numbers_only = numbers_only[:9]
+                    # Add as plain number without quotes
+                    formatted.append(numbers_only)
+                elif i <= 7:  # Other text columns (2nd to 8th)
+                    # Already cleaned, just add with quotes
                     formatted.append(f'"{v}"' if v else '')
-                else:
+                else:  # Numeric columns (9th and beyond)
                     try:
                         formatted.append(f"{float(v):.2f}")
                     except:
-                        formatted.append(v)
+                        # If conversion fails, use cleaned version
+                        formatted.append(clean_text(v))
 
             try:
-                sums['exempt'] += float(row[7]) if row[7] else 0
-                sums['zero'] += float(row[8]) if row[8] else 0
-                sums['taxable'] += float(row[9]) if row[9] else 0
-                sums['outputvat'] += float(row[10]) if row[10] else 0
+                # Use original row indices for sum calculations
+                original_row = row_data['original_row']
+                sums['exempt'] += float(original_row[7]) if len(original_row) > 7 and original_row[7] else 0
+                sums['zero'] += float(original_row[8]) if len(original_row) > 8 and original_row[8] else 0
+                sums['taxable'] += float(original_row[9]) if len(original_row) > 9 and original_row[9] else 0
+                sums['outputvat'] += float(original_row[10]) if len(original_row) > 10 and original_row[10] else 0
             except:
                 pass
 

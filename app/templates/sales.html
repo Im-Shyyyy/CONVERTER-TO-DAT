@@ -7,6 +7,8 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/sales.css" />
 
   </head>
@@ -70,6 +72,8 @@
       </div>
     </div>
 
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const tinInput = document.getElementById('client_tin');
@@ -84,6 +88,86 @@
               document.getElementById('address1').value = '';
               document.getElementById('address2').value = '';
               document.getElementById('rdo').value = '';
+            }
+
+            // Helper function to show styled error alert
+            function showValidationError(missingFields) {
+              const fieldList = missingFields.map((field, index) => 
+                `<div style="text-align: left; margin-bottom: 5px;">
+                  <span style="color: #ff6b6b; margin-right: 8px;">•</span>
+                  <span style="color: #e6edf3;">${field}</span>
+                </div>`
+              ).join('');
+              
+              Swal.fire({
+                title: '<span style="color: #ff6b6b;">Missing Required Fields</span>',
+                html: `
+                  <div style="text-align: center; margin-bottom: 20px; color: #9da9bb;">
+                    Please fill in the following required fields before submitting:
+                  </div>
+                  <div style="background: rgba(255, 107, 107, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #ff6b6b; margin-bottom: 20px;">
+                    ${fieldList}
+                  </div>
+                  <div style="color: #9da9bb; font-size: 0.9em;">
+                    <i>Note: Corporate Name OR (Last Name AND First Name) is required</i>
+                  </div>
+                `,
+                icon: 'error',
+                background: 'rgba(22, 27, 34, 0.95)',
+                color: '#e6edf3',
+                confirmButtonColor: '#ff4c4c',
+                confirmButtonText: 'Got it!',
+                customClass: {
+                  popup: 'sweet-alert-popup',
+                  title: 'sweet-alert-title',
+                  confirmButton: 'sweet-alert-confirm-btn'
+                },
+                showClass: {
+                  popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                  popup: 'animate__animated animate__fadeOutUp'
+                }
+              });
+              
+              // Highlight missing fields
+              missingFields.forEach(fieldName => {
+                highlightFieldByName(fieldName);
+              });
+            }
+            
+            // Helper function to highlight specific fields
+            function highlightFieldByName(fieldName) {
+              const fieldMap = {
+                'Client TIN': 'client_tin',
+                'Corporate Name': 'corporate_name',
+                'Last Name': 'last_name',
+                'First Name': 'first_name',
+                'Corporate Name OR Last Name and First Name': 'corporate_name',
+                'Corporate Name OR Last Name': 'corporate_name',
+                'Corporate Name OR First Name': 'corporate_name',
+                'Address Line 1 (Street, Barangay)': 'address1',
+                'Address Line 2 (Municipality/City, Zip)': 'address2',
+                'RDO': 'rdo',
+                'Period Covered': 'period'
+              };
+              
+              const fieldId = fieldMap[fieldName];
+              if (fieldId) {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                  element.classList.add('is-invalid');
+                  // Scroll to the field if it's not in view
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }
+            }
+            
+            // Helper function to clear all field highlights
+            function clearAllHighlights() {
+              document.querySelectorAll('.form-control').forEach(field => {
+                field.classList.remove('is-invalid');
+              });
             }
 
             // Fetch client details automatically when TIN is entered
@@ -193,32 +277,139 @@
                 sums = { exempt: 0, zero: 0, taxable: 0, outputvat: 0 };
             }
 
-            // Submit single entry (manual append)
+            // Submit single entry with validation
             document.getElementById('submit-btn').addEventListener('click', async () => {
-                const payload = {
-                    client_tin: document.getElementById('client_tin').value.replace(/-/g, ''),
-                    corporate_name: document.getElementById('corporate_name').value.toUpperCase(),
-                    last_name: document.getElementById('last_name').value.toUpperCase(),
-                    first_name: document.getElementById('first_name').value.toUpperCase(),
-                    middle_name: document.getElementById('middle_name').value.toUpperCase(),
-                    trade_name: document.getElementById('trade_name').value.toUpperCase(),
-                    address1: document.getElementById('address1').value.toUpperCase(),
-                    address2: document.getElementById('address2').value.toUpperCase(),
-                    rdo: document.getElementById('rdo').value,
-                    period: document.getElementById('period').value
-                };
-                const res = await fetch('/submit_sales', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+              // Clear previous highlights
+              clearAllHighlights();
+              
+              // Get all field values
+              const client_tin = document.getElementById('client_tin').value.replace(/\s/g, '').replace(/-/g, '');
+              const corporate_name = document.getElementById('corporate_name').value.trim();
+              const last_name = document.getElementById('last_name').value.trim();
+              const first_name = document.getElementById('first_name').value.trim();
+              const address1 = document.getElementById('address1').value.trim();
+              const address2 = document.getElementById('address2').value.trim();
+              const rdo = document.getElementById('rdo').value.trim();
+              const period = document.getElementById('period').value.trim();
+              
+              // Create an array to store missing field names
+              const missingFields = [];
+              
+              // 1. Check client_tin has value
+              if (!client_tin) {
+                missingFields.push('Client TIN');
+              }
+              
+              // 2. Check corporate_name or last_name/first_name
+              if (!corporate_name && (!last_name || !first_name)) {
+                if (!corporate_name && !last_name && !first_name) {
+                  missingFields.push('Corporate Name OR Last Name and First Name');
+                } else if (!corporate_name && !last_name) {
+                  missingFields.push('Corporate Name OR Last Name');
+                } else if (!corporate_name && !first_name) {
+                  missingFields.push('Corporate Name OR First Name');
+                }
+              }
+              
+              // 3. Check address1 and address2
+              if (!address1) {
+                missingFields.push('Address Line 1 (Street, Barangay)');
+              }
+              if (!address2) {
+                missingFields.push('Address Line 2 (Municipality/City, Zip)');
+              }
+              
+              // 4. Check rdo has value
+              if (!rdo) {
+                missingFields.push('RDO');
+              }
+              
+              // 5. Check period has value
+              if (!period) {
+                missingFields.push('Period Covered');
+              }
+              
+              // If there are missing fields, show SweetAlert and stop submission
+              if (missingFields.length > 0) {
+                showValidationError(missingFields);
+                return; // Stop the function from proceeding
+              }
+              
+              // If all validations pass, proceed with submission
+              const payload = {
+                client_tin: client_tin,
+                corporate_name: corporate_name.toUpperCase(),
+                last_name: last_name.toUpperCase(),
+                first_name: first_name.toUpperCase(),
+                middle_name: document.getElementById('middle_name').value.toUpperCase(),
+                trade_name: document.getElementById('trade_name').value.toUpperCase(),
+                address1: address1.toUpperCase(),
+                address2: address2.toUpperCase(),
+                rdo: rdo,
+                period: period
+              };
+              
+              try {
+                // Show loading alert
+                Swal.fire({
+                  title: 'Submitting...',
+                  text: 'Please wait while we process your request',
+                  allowOutsideClick: false,
+                  didOpen: () => {
+                    Swal.showLoading();
+                  },
+                  background: 'rgba(22, 27, 34, 0.95)',
+                  color: '#e6edf3'
                 });
+                
+                const res = await fetch('/submit_sales', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                
+                Swal.close();
+                
                 const data = await res.json();
                 if (data.row) {
-                    const tinNoDashes = payload.client_tin.replace(/-/g, '');
-                    rows = rows.map(row => `${row},${tinNoDashes},${payload.period || ''}`);
-                    rows.unshift(data.row);
-                    renderList();
-                } else if (data.error) alert(data.error);
+                  const tinNoDashes = payload.client_tin.replace(/-/g, '');
+                  rows = rows.map(row => `${row},${tinNoDashes},${payload.period || ''}`);
+                  rows.unshift(data.row);
+                  renderList();
+                  
+                  // Show success message
+                  Swal.fire({
+                    title: '<span style="color: #20c997;">Success!</span>',
+                    text: 'Entry has been successfully submitted.',
+                    icon: 'success',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#20c997',
+                    timer: 2000,
+                    showConfirmButton: false
+                  });
+                } else if (data.error) {
+                  Swal.fire({
+                    title: '<span style="color: #ff6b6b;">Submission Error</span>',
+                    text: data.error,
+                    icon: 'error',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#ff4c4c'
+                  });
+                }
+              } catch (error) {
+                Swal.close();
+                console.error('Submission error:', error);
+                Swal.fire({
+                  title: '<span style="color: #ff6b6b;">Network Error</span>',
+                  text: 'An error occurred while submitting. Please check your connection and try again.',
+                  icon: 'error',
+                  background: 'rgba(22, 27, 34, 0.95)',
+                  color: '#e6edf3',
+                  confirmButtonColor: '#ff4c4c'
+                });
+              }
             });
 
             // Handle CSV upload (now points to /upload_sales)
@@ -227,6 +418,19 @@
             document.getElementById('csv-input').addEventListener('change', async (ev) => {
                 const file = ev.target.files[0];
                 if (!file) return;
+                
+                // Show loading
+                Swal.fire({
+                  title: 'Uploading...',
+                  text: 'Processing CSV file',
+                  allowOutsideClick: false,
+                  didOpen: () => {
+                    Swal.showLoading();
+                  },
+                  background: 'rgba(22, 27, 34, 0.95)',
+                  color: '#e6edf3'
+                });
+                
                 const fd = new FormData();
                 fd.append('file', file);
 
@@ -234,27 +438,97 @@
                 const data = await res.json();
 
                 document.getElementById('csv-input').value = '';
+                
+                Swal.close();
+                
                 if (data.rows) {
                     rows = rows.concat(data.rows);
                     sums = data.sums;
                     renderList();
+                    
+                    // Show success message
+                    Swal.fire({
+                      title: '<span style="color: #20c997;">Upload Successful!</span>',
+                      text: `Successfully uploaded ${data.rows.length} records.`,
+                      icon: 'success',
+                      background: 'rgba(22, 27, 34, 0.95)',
+                      color: '#e6edf3',
+                      confirmButtonColor: '#20c997',
+                      timer: 2000,
+                      showConfirmButton: false
+                    });
                 } else {
-                    alert(data.error || 'Upload failed');
+                    Swal.fire({
+                      title: '<span style="color: #ff6b6b;">Upload Failed</span>',
+                      text: data.error || 'Upload failed',
+                      icon: 'error',
+                      background: 'rgba(22, 27, 34, 0.95)',
+                      color: '#e6edf3',
+                      confirmButtonColor: '#ff4c4c'
+                    });
                 }
             });
 
-            // Clear list
+            // Clear list with confirmation
             document.getElementById('clear-btn').addEventListener('click', () => {
-                rows = [];
-                resetSums();
-                renderList();
+              Swal.fire({
+                title: '<span style="color: #ff6b6b;">Clear List?</span>',
+                text: 'Are you sure you want to clear all data? This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff4c4c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, clear it!',
+                cancelButtonText: 'Cancel',
+                background: 'rgba(22, 27, 34, 0.95)',
+                color: '#e6edf3'
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  rows = [];
+                  resetSums();
+                  renderList();
+                  Swal.fire({
+                    title: '<span style="color: #20c997;">Cleared!</span>',
+                    text: 'All data has been cleared.',
+                    icon: 'success',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#20c997',
+                    timer: 1500,
+                    showConfirmButton: false
+                  });
+                }
+              });
             });
 
             // Save .DAT file
             document.getElementById('save-dat').addEventListener('click', async () => {
-                if (rows.length === 0) return alert('No data to save');
+                if (rows.length === 0) {
+                  Swal.fire({
+                    title: '<span style="color: #ff6b6b;">No Data</span>',
+                    text: 'There is no data to save.',
+                    icon: 'warning',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#ff4c4c'
+                  });
+                  return;
+                }
+                
                 const el = document.getElementById('user-list');
                 rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
+                // Show loading
+                Swal.fire({
+                  title: 'Saving...',
+                  text: 'Generating DAT file',
+                  allowOutsideClick: false,
+                  didOpen: () => {
+                    Swal.showLoading();
+                  },
+                  background: 'rgba(22, 27, 34, 0.95)',
+                  color: '#e6edf3'
+                });
 
                 const res = await fetch('/save_dat_sales', {
                     method: 'POST',
@@ -265,6 +539,9 @@
                         period: document.getElementById('period').value
                     })
                 });
+                
+                Swal.close();
+                
                 if (res.ok) {
                     const blob = await res.blob();
                     const url = window.URL.createObjectURL(blob);
@@ -274,22 +551,67 @@
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
-                } else alert('Failed to generate .dat');
+                    
+                    Swal.fire({
+                      title: '<span style="color: #20c997;">File Saved!</span>',
+                      text: 'DAT file has been downloaded successfully.',
+                      icon: 'success',
+                      background: 'rgba(22, 27, 34, 0.95)',
+                      color: '#e6edf3',
+                      confirmButtonColor: '#20c997',
+                      timer: 2000,
+                      showConfirmButton: false
+                    });
+                } else {
+                  Swal.fire({
+                    title: '<span style="color: #ff6b6b;">Save Failed</span>',
+                    text: 'Failed to generate DAT file.',
+                    icon: 'error',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#ff4c4c'
+                  });
+                }
             });
 
             // Convert to Excel (.xlsx)
             document.getElementById('convert-xlsx').addEventListener('click', async () => {
-                if (rows.length === 0) return alert('No data to convert');
+                if (rows.length === 0) {
+                  Swal.fire({
+                    title: '<span style="color: #ff6b6b;">No Data</span>',
+                    text: 'There is no data to convert.',
+                    icon: 'warning',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#ff4c4c'
+                  });
+                  return;
+                }
 
                 // 🩹 Sync edited text back into the array
                 const el = document.getElementById('user-list');
                 rows = el.innerText.trim().split('\n').filter(line => line.trim() !== '');
+
+                // Show loading
+                Swal.fire({
+                  title: 'Converting...',
+                  text: 'Generating Excel file',
+                  allowOutsideClick: false,
+                  didOpen: () => {
+                    Swal.showLoading();
+                  },
+                  background: 'rgba(22, 27, 34, 0.95)',
+                  color: '#e6edf3'
+                });
 
                 const res = await fetch('/convert_sales_xlsx', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rows })
                 });
+                
+                Swal.close();
+                
                 if (res.ok) {
                     const blob = await res.blob();
                     const url = window.URL.createObjectURL(blob);
@@ -299,7 +621,27 @@
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
-                } else alert('Failed to create Excel');
+                    
+                    Swal.fire({
+                      title: '<span style="color: #20c997;">Conversion Complete!</span>',
+                      text: 'Excel file has been downloaded successfully.',
+                      icon: 'success',
+                      background: 'rgba(22, 27, 34, 0.95)',
+                      color: '#e6edf3',
+                      confirmButtonColor: '#20c997',
+                      timer: 2000,
+                      showConfirmButton: false
+                    });
+                } else {
+                  Swal.fire({
+                    title: '<span style="color: #ff6b6b;">Conversion Failed</span>',
+                    text: 'Failed to create Excel file.',
+                    icon: 'error',
+                    background: 'rgba(22, 27, 34, 0.95)',
+                    color: '#e6edf3',
+                    confirmButtonColor: '#ff4c4c'
+                  });
+                }
             });
         });
 
