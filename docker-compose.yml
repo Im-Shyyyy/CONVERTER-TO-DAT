@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: flask-prod
+    environment:
+      - PORT=5000
+    restart: unless-stopped
+    command: gunicorn --workers=2 --bind=0.0.0.0:5000 run:app
+    networks:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask-prod.rule=Host(`birtools.xdt`)"
+      - "traefik.http.routers.flask-prod.entrypoints=web"
+      # Optional: set middleware, e.g., redirect http->https
+      # - "traefik.http.routers.flask-prod.middlewares=redirect@file"
+
+networks:
+  traefik:
+    external: true
+  backend:
+    external:
+      name: db-network
